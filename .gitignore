@@ -1,0 +1,13 @@
+src/.ipynb_checkpoints/data_loader-checkpoint.py
+src/.ipynb_checkpoints/evaluate-checkpoint.py
+src/.ipynb_checkpoints/functions-checkpoint.py
+src/.ipynb_checkpoints/model-checkpoint.py
+src/.ipynb_checkpoints/parsers-checkpoint.py
+src/__pycache__/data_loader.cpython-39.pyc
+.ipynb_checkpoints/main-checkpoint.ipynb
+.ipynb_checkpoints/.gitignore-checkpoint
+src/__pycache__/test.cpython-39.pyc
+src/__pycache__/parsers.cpython-39.pyc
+src/__pycache__/model.cpython-39.pyc
+src/__pycache__/functions.cpython-39.pyc
+src/__pycache__/evaluate.cpython-39.pyc
