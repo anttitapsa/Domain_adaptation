@@ -12,7 +12,7 @@ class Unet(Module):
     # classes: number of labels
     # dropout: During training, randomly zeroes some of the elements of the input tensor with probability 
     # dropout to prevent overtraining
-    def __init__(self, nimcChannels = 1, classes = 2, dropout = 0.1):
+    def __init__(self, numChannels = 1, classes = 2, dropout = 0.1):
         super(Unet, self).__init__()
         # Encoder (traditional convolutional and max pooling layers)
         self.conv1 = Conv2d_block(in_channel = numChannels, out_channel = 64)
@@ -51,7 +51,7 @@ class Unet(Module):
         self.dropout9 = Dropout(dropout)
         self.conv9 = Conv2d_block(in_channels = 128, out_channel = 64)
         
-        self.outc = OutConv(out_channel = 64, classes)
+        self.outc = Conv2d(in_channels = 64, out_channels = classes, kernel_size = 1)
         
     def forward(self, x):
         # function that defines how the model is going to be run, from input to output
