@@ -1,6 +1,8 @@
+import torch
 from torch.nn import Conv2d
 from torch.nn import Module
 from torch.nn import MaxPool2d
+from torch.nn import BatchNorm2d
 from torch.nn import ReLU
 from torch import Dropout
 from torch import cat
@@ -36,19 +38,19 @@ class Unet(Module):
         
         # Decoder (converts a reduced image to retain pixel location infromation) 
         
-        self.transpose6 = ConvTranspose2d(in_channels = 1024//2, out_channels = 256//2, kernel_size = 3)
+        self.transpose6 = ConvTranspose2d(in_channels = 1024//2, out_channels = 256//2, kernel_size = 2, stride = 2)
         self.dropout6 = Dropout(dropout)
         self.conv6 = Conv2d_block(in_channels = 1024, out_channel = 256)
 
-        self.transpose7 = ConvTranspose2d(in_channels = 512//2, out_channels = 128//2, kernel_size = 3)
+        self.transpose7 = ConvTranspose2d(in_channels = 512//2, out_channels = 128//2, kernel_size = 2, stride = 2)
         self.dropout7 = Dropout(dropout)
         self.conv7 = Conv2d_block(in_channels = 512, out_channel = 128)
         
-        self.transpose8 = ConvTranspose2d(in_channels = 256//2, out_channels = 64//2, kernel_size = 3)
+        self.transpose8 = ConvTranspose2d(in_channels = 256//2, out_channels = 64//2, kernel_size = 2, stride = 2)
         self.dropout8 = Dropout(dropout)
         self.conv8 = Conv2d_block(in_channels = 256, out_channel = 64)
 
-        self.transpose9 = ConvTranspose2d(in_channels = 128//2, out_channels = 64//2, kernel_size = 3)
+        self.transpose9 = ConvTranspose2d(in_channels = 128//2, out_channels = 64//2, kernel_size = 2, stride = 2)
         self.dropout9 = Dropout(dropout)
         self.conv9 = Conv2d_block(in_channels = 128, out_channel = 64)
         
@@ -104,8 +106,10 @@ class Conv2d_block(Module):
         super(Conv2d_block, self).__init__()
         self.model = nn.Sequential(
             Conv2d(in_channel, out_channel, kernel_size = 3, padding = 1),
+            BatchNorm2d(num_features = out_channel),
             ReLU(inplace = True),
             Conv2d(out_channel, out_channel, kernel_size = 3, padding = 1),
+            BatchNorm2d(num_features = out_channel),
             ReLU(inplace = True)
         )
 
