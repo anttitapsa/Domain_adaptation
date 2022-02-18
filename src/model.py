@@ -8,6 +8,7 @@ from torch import ConvTranspose2d
 import torch.nn.functional as F
 
 class Unet(Module):
+    # input_image 572x572
     # numChannels 1: grayscale and 3 RGB
     # classes: number of labels
     # dropout: During training, randomly zeroes some of the elements of the input tensor with probability 
