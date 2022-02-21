@@ -77,22 +77,22 @@ class Unet(Module):
         x = self.conv5(x)
         
         x6 = self.transpose6(x)
-        x = cat([x6, x4], dim = 1)
+        x = cat((x6, x4), dim = 1)
         x = self.dropout6(x)
         x = self.conv6(x)
         
         x7 = self.transpose7(x)
-        x = cat([x7, x3], dim = 1)
+        x = cat((x7, x3), dim = 1)
         x = self.dropout7(x)
         x = self.conv7(x)
         
         x8 = self.transpose8(x)
-        x = cat([x8, x2], dim = 1)
+        x = cat((x8, x2), dim = 1)
         x = self.dropout8(x)
         x = self.conv8(x)
         
         x9 = self.transpose9(x)
-        x = self.cat9([x9, x1], dim = 1)
+        x = cat((x9, x1), dim = 1)
         x = self.dropout9(x)
         x = self.conv9(x)
         
