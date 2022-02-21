@@ -18,4 +18,4 @@ env
 *.tif
 *.png
 *.jpeg
-data/s
+/data
