@@ -4,9 +4,9 @@ from torch.nn import Module
 from torch.nn import MaxPool2d
 from torch.nn import BatchNorm2d
 from torch.nn import ReLU
-from torch import Dropout
+from torch.nn import Dropout
 from torch import cat
-from torch import ConvTranspose2d
+from torch.nn import ConvTranspose2d
 import torch.nn.functional as F
 
 class Unet(Module):
@@ -30,7 +30,7 @@ class Unet(Module):
         self.maxpool3 = MaxPool2d(2)
         self.dropout3 = Dropout(dropout)
         
-        self.conv4 = Conv2d_block(in_channels= 256, out_channel = 512)
+        self.conv4 = Conv2d_block(in_channel= 256, out_channel = 512)
         self.maxpool4 = MaxPool2d(2)
         self.dropout4 = Dropout(dropout)
         
@@ -40,19 +40,19 @@ class Unet(Module):
         
         self.transpose6 = ConvTranspose2d(in_channels = 1024//2, out_channels = 256//2, kernel_size = 2, stride = 2)
         self.dropout6 = Dropout(dropout)
-        self.conv6 = Conv2d_block(in_channels = 1024, out_channel = 256)
+        self.conv6 = Conv2d_block(in_channel = 1024, out_channel = 256)
 
         self.transpose7 = ConvTranspose2d(in_channels = 512//2, out_channels = 128//2, kernel_size = 2, stride = 2)
         self.dropout7 = Dropout(dropout)
-        self.conv7 = Conv2d_block(in_channels = 512, out_channel = 128)
+        self.conv7 = Conv2d_block(in_channel = 512, out_channel = 128)
         
         self.transpose8 = ConvTranspose2d(in_channels = 256//2, out_channels = 64//2, kernel_size = 2, stride = 2)
         self.dropout8 = Dropout(dropout)
-        self.conv8 = Conv2d_block(in_channels = 256, out_channel = 64)
+        self.conv8 = Conv2d_block(in_channel = 256, out_channel = 64)
 
         self.transpose9 = ConvTranspose2d(in_channels = 128//2, out_channels = 64//2, kernel_size = 2, stride = 2)
         self.dropout9 = Dropout(dropout)
-        self.conv9 = Conv2d_block(in_channels = 128, out_channel = 64)
+        self.conv9 = Conv2d_block(in_channel = 128, out_channel = 64)
         
         self.outc = Conv2d(in_channels = 64, out_channels = classes, kernel_size = 1)
         
@@ -104,7 +104,7 @@ class Conv2d_block(Module):
     # function that adds two convolutional layers
     def __init__(self, in_channel, out_channel):
         super(Conv2d_block, self).__init__()
-        self.model = nn.Sequential(
+        self.model = torch.nn.Sequential(
             Conv2d(in_channel, out_channel, kernel_size = 3, padding = 1),
             BatchNorm2d(num_features = out_channel),
             ReLU(inplace = True),

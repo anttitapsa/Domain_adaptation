@@ -4,12 +4,13 @@
 import argparse # logging
 import logging # logging duh
 import sys
+import os
 from pathlib import Path
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import wandb  # logging / visualization
+#import wandb  # logging / visualization
 from torch import optim
 from torch.utils.data import DataLoader, random_split
 
@@ -22,7 +23,7 @@ from data_loader import MaskedDataset
 # Import dice score (it's like F1 score)
 from functions import dice_loss
 # Import testing for main in this file (optional)
-from evaluate import evaluate
+from evaluate import evaluate_model
 # Import model
 from model import Unet
 
@@ -204,7 +205,7 @@ if __name__ == '__main__':
     # Change here to adapt to your data
     # n_channels=3 for RGB images
     # n_classes is the number of probabilities you want to get per pixel
-    net = UNet(numChannels=1, classes=2, dropout = 0.1)
+    net = Unet(numChannels=1, classes=2, dropout = 0.1)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     net.to(device=device)
     
