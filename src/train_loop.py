@@ -98,10 +98,13 @@ def train_net(net,
                 images = batch[0]
                 true_masks = batch[1]
                 # Check that channels match
+                ''' 
+                #AttributeError: 'Unet' object has no attribute 'n_channels'
                 assert images.shape[1] == net.n_channels, \
                     f'Network has been defined with {net.n_channels} input channels, ' \
                     f'but loaded images have {images.shape[1]} channels. Please check that ' \
                     'the images are loaded correctly.'
+                '''
                 # Move data to device
                 images = images.to(device=device, dtype=torch.float32)
                 true_masks = true_masks.to(device=device, dtype=torch.long)
@@ -212,7 +215,7 @@ if __name__ == '__main__':
     try:
         train_net(net=net,
                   epochs= 5, # Set epochs
-                  batch_size= 1, # Batch size
+                  batch_size= 3, # Batch size
                   learning_rate=0.001, # Learning rate
                   device=device,
                   val_percent=0.1, # Percent of test set
