@@ -13,6 +13,7 @@ src/__pycache__/functions.cpython-39.pyc
 src/__pycache__/evaluate.cpython-39.pyc
 env
 .vscode/
+*__pycache__*
 *.npy
 *.tif
 *.png

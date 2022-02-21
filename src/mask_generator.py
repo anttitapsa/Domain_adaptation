@@ -16,7 +16,7 @@ def main():
     Example of running
     python mask_generator.py C:\livecell_coco_train.json C:\data\livecell\images
 
-    Script assumes that data is stored in folder structure below. If there is no masks directory allready, scrit creates it
+    Script assumes that data is stored in folder structure below. If there is no masks directory, the script creates it
     
     src
     |    |
@@ -40,7 +40,7 @@ def main():
         
         coco = COCO(annotation_dir)
         img_ids = list(coco.imgs.keys())
-        count = len(os.listdir(images_dir))
+        count = len(coco.imgs)
         save_path = os.path.join(os.curdir, os.pardir, "data", "livecell", "masks")
         if not os.path.isdir(save_path):
             os.mkdir(save_path)
@@ -52,8 +52,9 @@ def main():
             anns = coco.loadAnns(an_ids)
 
             mask = coco.annToMask(anns[0])
-            for i in range(len(anns)):
+            for i in range(1, len(anns)):
                 mask += coco.annToMask(anns[i])
+                
             # Changes values to 0 or 1 --> chages mask to binary mask
             mask = np.where(mask> 0, 1, 0)
 
