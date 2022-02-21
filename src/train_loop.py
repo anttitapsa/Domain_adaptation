@@ -95,8 +95,8 @@ def train_net(net,
             for batch in train_loader:
                 
                 # Prepare data
-                images = batch['image']
-                true_masks = batch['mask']
+                images = batch[0]
+                true_masks = batch[1]
                 # Check that channels match
                 assert images.shape[1] == net.n_channels, \
                     f'Network has been defined with {net.n_channels} input channels, ' \
