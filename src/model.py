@@ -8,7 +8,9 @@ from torch.nn import Dropout
 from torch import cat
 from torch.nn import ConvTranspose2d
 import torch.nn.functional as F
-
+# code based on:
+# https://github.com/hlamba28/UNET-TGS 
+# https://github.com/mateuszbuda/brain-segmentation-pytorch/blob/master/unet.py 
 class Unet(Module):
     # input_image 572x572
     # numChannels 1: grayscale and 3 RGB
@@ -19,19 +21,19 @@ class Unet(Module):
         super(Unet, self).__init__()
         # Encoder (traditional convolutional and max pooling layers)
         self.conv1 = Unet._conv2d_block(in_channel = numChannels, out_channel = 64)
-        self.maxpool1 = MaxPool2d(2)
+        self.maxpool1 = MaxPool2d(kernel_size = 2, stride = 2)
         self.dropout1 = Dropout(dropout)
 
         self.conv2 = Unet._conv2d_block(in_channel = 64, out_channel = 128)
-        self.maxpool2 = MaxPool2d(2)
+        self.maxpool2 = MaxPool2d(kernel_size = 2, stride = 2)
         self.dropout2 = Dropout(dropout)
        
         self.conv3 = Unet._conv2d_block(in_channel = 128, out_channel = 256)
-        self.maxpool3 = MaxPool2d(2)
+        self.maxpool3 = MaxPool2d(kernel_size = 2, stride = 2)
         self.dropout3 = Dropout(dropout)
         
         self.conv4 = Unet._conv2d_block(in_channel= 256, out_channel = 512)
-        self.maxpool4 = MaxPool2d(2)
+        self.maxpool4 = MaxPool2d(kernel_size = 2, stride = 2)
         self.dropout4 = Dropout(dropout)
         
         self.conv5 = Unet._conv2d_block(in_channel = 512, out_channel = 1024)
@@ -102,10 +104,10 @@ class Unet(Module):
     @staticmethod
     def _conv2d_block(in_channel, out_channel):
         return torch.nn.Sequential(
-            Conv2d(in_channel, out_channel, kernel_size = 3, padding = 1),
+            Conv2d(in_channels = in_channel, out_channels = out_channel, kernel_size = 3, padding = 1),
             BatchNorm2d(num_features = out_channel),
             ReLU(inplace = True),
-            Conv2d(out_channel, out_channel, kernel_size = 3, padding = 1),
+            Conv2d(in_channels = out_channel, out_channels = out_channel, kernel_size = 3, padding = 1),
             BatchNorm2d(num_features = out_channel),
             ReLU(inplace = True)
         )
