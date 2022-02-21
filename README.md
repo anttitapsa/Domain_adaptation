@@ -28,7 +28,7 @@ After that, get the urls from files in `ulrs.txt` using `grep`:
 
 ```grep -oPm1 "(?<=<Key>)[^<]+" files.xml | sed -e 's/^/http:\/\/livecell-dataset.s3.eu-central-1.amazonaws.com\//' > urls.txt```
 
-Finally, download the files you like using `wget`.
+Finally, download the wanted files using `wget`.
 
 Full instructions for downloading the LIVECell and file structures of dataset can be found [here](https://sartorius-research.github.io/LIVECell/#:~:text=Download%20all%20of%20LIVECell). 
 </details>
