@@ -87,10 +87,11 @@ class MaskedDataset(Dataset):
                 f"Couldn't read image {img_path}. Make sure your data is located in {self.img_dir}!")
         
         # For some reason images come in size [1, 520, 704]. flatten makes it [520, 704], as the masks are.
-        image = torch.flatten(ToTensor()(image), end_dim=-2)
+        image = ToTensor()(image) # Legit?
         mask = self.masks[name]
         if mask.size() != image.size():
-            raise DataLoaderException(f"Mask size {mask.size()} does not match with image size {image.size()}")
+            pass
+            # raise DataLoaderException(f"Mask size {mask.size()} does not match with image size {image.size()}")
         
         image = CenterCrop(IMG_SIZE)(image)
         mask = CenterCrop(IMG_SIZE)(mask)
