@@ -27,9 +27,11 @@ from evaluate import evaluate
 from model import Unet
 
 # Paths need to be modified
-dir_img = Path() #'./data/imgs/')
-dir_mask = Path() #'./data/masks/')
-dir_checkpoint = Path() #'./checkpoints/')
+DATA_DIR = os.path.join(os.getcwd(), "data")
+TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
+LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
+LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
+IMG_SIZE = 572
 
 # Hyperparameter defaults here
 def train_net(net,
@@ -39,16 +41,13 @@ def train_net(net,
               learning_rate: float = 0.001,
               val_percent: float = 0.1,
               save_checkpoint: bool = True,
-              img_scale: float = 0.5,
               amp: bool = False):
     
     # NOTE the whole datahandling could be moved somewhere else (sections 1-3)
     
     # 1. Create dataset
-    try:
-        dataset = None # Dataset here e.g. CarvanaDataset(dir_img, dir_mask, img_scale)
-    except (AssertionError, RuntimeError):
-        dataset = BasicDataset(dir_img, dir_mask, img_scale)
+
+    dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR)
 
     # 2. Split into train / validation partitions
     n_val = int(len(dataset) * val_percent)
@@ -59,6 +58,7 @@ def train_net(net,
     loader_args = dict(batch_size=batch_size, num_workers=4, pin_memory=True)   # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
     train_loader = DataLoader(train_set, shuffle=True, **loader_args)
     val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
+    
     '''
     # (Initialize logging)
     experiment = wandb.init(project='U-Net', resume='allow', anonymous='must')
@@ -133,6 +133,7 @@ def train_net(net,
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
 
                 # Evaluation round
+                '''
                 division_step = (n_train // (10 * batch_size))
                 if division_step > 0:
                     if global_step % division_step == 0:
@@ -144,7 +145,9 @@ def train_net(net,
 
                         val_score = evaluate(net, val_loader, device)
                         scheduler.step(val_score)
+                        
 
+                        
                         logging.info('Validation Dice score: {}'.format(val_score))
                         experiment.log({
                             'learning rate': optimizer.param_groups[0]['lr'],
@@ -158,6 +161,7 @@ def train_net(net,
                             'epoch': epoch,
                             **histograms
                         })
+                '''
 
         if save_checkpoint:
             Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
@@ -200,7 +204,7 @@ if __name__ == '__main__':
     # Change here to adapt to your data
     # n_channels=3 for RGB images
     # n_classes is the number of probabilities you want to get per pixel
-    net = UNet(numChannels=3, classes=2, dropout = 0.1)
+    net = UNet(numChannels=1, classes=2, dropout = 0.1)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     net.to(device=device)
     
@@ -210,7 +214,6 @@ if __name__ == '__main__':
                   batch_size= 1, # Batch size
                   learning_rate=0.001, # Learning rate
                   device=device,
-                  img_scale=0.5,
                   val_percent=0.1, # Percent of test set
                   save_checkpoint = False,
                   amp=False)
