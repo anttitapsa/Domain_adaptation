@@ -34,23 +34,23 @@ class Unet(Module):
         self.maxpool4 = MaxPool2d(2)
         self.dropout4 = Dropout(dropout)
         
-        self.conv5 = Conv2d_block(in_channel = 512, out_channel = 512)
+        self.conv5 = Conv2d_block(in_channel = 512, out_channel = 1024)
         
         # Decoder (converts a reduced image to retain pixel location infromation) 
         
-        self.transpose6 = ConvTranspose2d(in_channels = 1024//2, out_channels = 256//2, kernel_size = 2, stride = 2)
+        self.transpose6 = ConvTranspose2d(in_channels = 1024, out_channels = 512, kernel_size = 2, stride = 2)
         self.dropout6 = Dropout(dropout)
-        self.conv6 = Conv2d_block(in_channel = 1024, out_channel = 256)
+        self.conv6 = Conv2d_block(in_channel = 1024, out_channel = 512)
 
-        self.transpose7 = ConvTranspose2d(in_channels = 512//2, out_channels = 128//2, kernel_size = 2, stride = 2)
+        self.transpose7 = ConvTranspose2d(in_channels = 512, out_channels = 256, kernel_size = 2, stride = 2)
         self.dropout7 = Dropout(dropout)
-        self.conv7 = Conv2d_block(in_channel = 512, out_channel = 128)
+        self.conv7 = Conv2d_block(in_channel = 512, out_channel = 256)
         
-        self.transpose8 = ConvTranspose2d(in_channels = 256//2, out_channels = 64//2, kernel_size = 2, stride = 2)
+        self.transpose8 = ConvTranspose2d(in_channels = 256, out_channels = 128, kernel_size = 2, stride = 2)
         self.dropout8 = Dropout(dropout)
-        self.conv8 = Conv2d_block(in_channel = 256, out_channel = 64)
+        self.conv8 = Conv2d_block(in_channel = 256, out_channel = 128)
 
-        self.transpose9 = ConvTranspose2d(in_channels = 128//2, out_channels = 64//2, kernel_size = 2, stride = 2)
+        self.transpose9 = ConvTranspose2d(in_channels = 128, out_channels = 64, kernel_size = 2, stride = 2)
         self.dropout9 = Dropout(dropout)
         self.conv9 = Conv2d_block(in_channel = 128, out_channel = 64)
         
@@ -77,22 +77,22 @@ class Unet(Module):
         x = self.conv5(x)
         
         x6 = self.transpose6(x)
-        x = cat([x6, x4], dim = 1)
+        x = cat((x6, x4), dim = 1)
         x = self.dropout6(x)
         x = self.conv6(x)
         
         x7 = self.transpose7(x)
-        x = cat([x7, x3], dim = 1)
+        x = cat((x7, x3), dim = 1)
         x = self.dropout7(x)
         x = self.conv7(x)
         
         x8 = self.transpose8(x)
-        x = cat([x8, x2], dim = 1)
+        x = cat((x8, x2), dim = 1)
         x = self.dropout8(x)
         x = self.conv8(x)
         
         x9 = self.transpose9(x)
-        x = self.cat9([x9, x1], dim = 1)
+        x = cat((x9, x1), dim = 1)
         x = self.dropout9(x)
         x = self.conv9(x)
         
