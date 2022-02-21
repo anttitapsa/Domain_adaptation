@@ -34,7 +34,7 @@ class Unet(Module):
         self.maxpool4 = MaxPool2d(2)
         self.dropout4 = Dropout(dropout)
         
-        self.conv5 = Conv2d_block(in_channel = 512, out_channel = 512)
+        self.conv5 = Conv2d_block(in_channel = 512, out_channel = 1024)
         
         # Decoder (converts a reduced image to retain pixel location infromation) 
         
