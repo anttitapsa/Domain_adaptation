@@ -18,41 +18,41 @@ class Unet(Module):
     def __init__(self, numChannels = 1, classes = 2, dropout = 0.1):
         super(Unet, self).__init__()
         # Encoder (traditional convolutional and max pooling layers)
-        self.conv1 = Conv2d_block(in_channel = numChannels, out_channel = 64)
+        self.conv1 = Unet._conv2d_block(in_channel = numChannels, out_channel = 64)
         self.maxpool1 = MaxPool2d(2)
         self.dropout1 = Dropout(dropout)
 
-        self.conv2 = Conv2d_block(in_channel = 64, out_channel = 128)
+        self.conv2 = Unet._conv2d_block(in_channel = 64, out_channel = 128)
         self.maxpool2 = MaxPool2d(2)
         self.dropout2 = Dropout(dropout)
        
-        self.conv3 = Conv2d_block(in_channel = 128, out_channel = 256)
+        self.conv3 = Unet._conv2d_block(in_channel = 128, out_channel = 256)
         self.maxpool3 = MaxPool2d(2)
         self.dropout3 = Dropout(dropout)
         
-        self.conv4 = Conv2d_block(in_channel= 256, out_channel = 512)
+        self.conv4 = Unet._conv2d_block(in_channel= 256, out_channel = 512)
         self.maxpool4 = MaxPool2d(2)
         self.dropout4 = Dropout(dropout)
         
-        self.conv5 = Conv2d_block(in_channel = 512, out_channel = 1024)
+        self.conv5 = Unet._conv2d_block(in_channel = 512, out_channel = 1024)
         
         # Decoder (converts a reduced image to retain pixel location infromation) 
         
         self.transpose6 = ConvTranspose2d(in_channels = 1024, out_channels = 512, kernel_size = 2, stride = 2)
         self.dropout6 = Dropout(dropout)
-        self.conv6 = Conv2d_block(in_channel = 1024, out_channel = 512)
+        self.conv6 = Unet._conv2d_block(in_channel = 1024, out_channel = 512)
 
         self.transpose7 = ConvTranspose2d(in_channels = 512, out_channels = 256, kernel_size = 2, stride = 2)
         self.dropout7 = Dropout(dropout)
-        self.conv7 = Conv2d_block(in_channel = 512, out_channel = 256)
+        self.conv7 = Unet._conv2d_block(in_channel = 512, out_channel = 256)
         
         self.transpose8 = ConvTranspose2d(in_channels = 256, out_channels = 128, kernel_size = 2, stride = 2)
         self.dropout8 = Dropout(dropout)
-        self.conv8 = Conv2d_block(in_channel = 256, out_channel = 128)
+        self.conv8 = Unet._conv2d_block(in_channel = 256, out_channel = 128)
 
         self.transpose9 = ConvTranspose2d(in_channels = 128, out_channels = 64, kernel_size = 2, stride = 2)
         self.dropout9 = Dropout(dropout)
-        self.conv9 = Conv2d_block(in_channel = 128, out_channel = 64)
+        self.conv9 = Unet._conv2d_block(in_channel = 128, out_channel = 64)
         
         self.outc = Conv2d(in_channels = 64, out_channels = classes, kernel_size = 1)
         
@@ -98,9 +98,20 @@ class Unet(Module):
         
         x = self.outc(x)
         return F.sigmoid(x)
+
+    @staticmethod
+    def _conv2d_block(in_channel, out_channel):
+        return torch.nn.Sequential(
+            Conv2d(in_channel, out_channel, kernel_size = 3, padding = 1),
+            BatchNorm2d(num_features = out_channel),
+            ReLU(inplace = True),
+            Conv2d(out_channel, out_channel, kernel_size = 3, padding = 1),
+            BatchNorm2d(num_features = out_channel),
+            ReLU(inplace = True)
+        )
    
    
-class Conv2d_block(Module):
+'''class Conv2d_block(Module):
     # function that adds two convolutional layers
     def __init__(self, in_channel, out_channel):
         super(Conv2d_block, self).__init__()
@@ -115,3 +126,4 @@ class Conv2d_block(Module):
 
     def forward(self, x):
         return self.model(x)
+'''
