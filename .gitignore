@@ -14,3 +14,4 @@ src/__pycache__/evaluate.cpython-39.pyc
 env
 .vscode/
 data/
+*__pycache__*
