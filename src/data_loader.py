@@ -3,7 +3,7 @@
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 import torch
-from torchvision.transforms import CenterCrop, ToTensor
+from torchvision.transforms import CenterCrop, ToTensor, Resize
 from torchvision.io import read_image
 import os
 import numpy as np
