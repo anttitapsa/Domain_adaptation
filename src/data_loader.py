@@ -50,7 +50,7 @@ class MaskedDataset(Dataset):
     img_dir: The directory containing ONLY images used foor this data set
     mask_dir: The directory containing ONLY masks of images in the same order as the images are found in img_dir
     """
-    def __init__(self, img_dir, mask_path, lenght=None, in_memory=False):
+    def __init__(self, img_dir, mask_path, length=None, in_memory=False):
         if not os.path.isdir(img_dir):
             raise DataLoaderException(f"The first argument 'img_dir' is not a directory, it is {img_dir}")
         if not os.path.isdir(mask_path):
@@ -60,28 +60,33 @@ class MaskedDataset(Dataset):
         self.ids = []
         self.masks = {}
         self.images = {}  # save images into memory if in_memory is set to True
-        self.lenght = lenght
+        self.length = length
         self.in_memory = in_memory
         print("Reading masks...")
-        for filename in tqdm(os.listdir(mask_path)):
+        iter_count = length if length else len(os.listdir(img_dir))
+        for i in tqdm(range(iter_count)):
+            mask_file = os.listdir(mask_path)[i]
+
             # Masks should be named after the original image file.
             # For example the image "image.png" should have a mask named "image_mask.npy"
             # The identifier for the mask should then be "image"
-            identifier = filename.split("_mask")[0]
+            identifier = mask_file.split("_mask")[0]
             self.ids.append(identifier)
+            img_name = identifier + self.im_suffix
 
             if in_memory:
-                path = os.path.join(mask_path, filename)
+                m_path = os.path.join(mask_path, mask_file)
                 try:
-                    self.masks[identifier] = torch.from_numpy(np.load(path))
+                    self.masks[identifier] = torch.from_numpy(np.load(m_path))
                 except FileNotFoundError:
                     raise DataLoaderException(
-                        f"Couldn't read mask {filename}. Make sure your masks are saved as np arrays in {mask_path}")
+                        f"Couldn't read mask {m_path}. Make sure your masks are saved as np arrays in {mask_path}")
+                i_path = os.path.join(img_dir, img_name)
                 try:
-                    image = Image.open(img_path)
+                    image = Image.open(i_path)
                 except FileNotFoundError:
                     raise DataLoaderException(
-                        f"Couldn't read image {img_path}. Make sure your data is located in {img_dir}!")
+                        f"Couldn't read image {i_path}. Make sure your data is located in {img_dir}!")
                 self.images[identifier] = image
             else:
                 self.mask_path = mask_path
@@ -121,6 +126,6 @@ class MaskedDataset(Dataset):
         
     def __len__(self):
         # return len(dataset)
-        if self.lenght:
-            return self.lenght
+        if self.length:
+            return self.length
         return len(os.listdir(self.img_dir))        
