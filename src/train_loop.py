@@ -4,12 +4,13 @@
 import argparse # logging
 import logging # logging duh
 import sys
+import os
 from pathlib import Path
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import wandb  # logging / visualization
+#import wandb  # logging / visualization
 from torch import optim
 from torch.utils.data import DataLoader, random_split
 
@@ -22,14 +23,15 @@ from data_loader import MaskedDataset
 # Import dice score (it's like F1 score)
 from functions import dice_loss
 # Import testing for main in this file (optional)
-from evaluate import evaluate
+from evaluate import evaluate_model
 # Import model
 from model import Unet
 
 # Paths need to be modified
-dir_img = Path() #'./data/imgs/')
-dir_mask = Path() #'./data/masks/')
-dir_checkpoint = Path() #'./checkpoints/')
+DATA_DIR = os.path.join(os.getcwd(), "data")
+TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
+LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
+LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
 
 # Hyperparameter defaults here
 def train_net(net,
@@ -39,16 +41,14 @@ def train_net(net,
               learning_rate: float = 0.001,
               val_percent: float = 0.1,
               save_checkpoint: bool = True,
-              img_scale: float = 0.5,
-              amp: bool = False):
+              amp: bool = False,
+              n_images = None):
     
     # NOTE the whole datahandling could be moved somewhere else (sections 1-3)
     
     # 1. Create dataset
-    try:
-        dataset = None # Dataset here e.g. CarvanaDataset(dir_img, dir_mask, img_scale)
-    except (AssertionError, RuntimeError):
-        dataset = BasicDataset(dir_img, dir_mask, img_scale)
+
+    dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, n_images)
 
     # 2. Split into train / validation partitions
     n_val = int(len(dataset) * val_percent)
@@ -59,6 +59,7 @@ def train_net(net,
     loader_args = dict(batch_size=batch_size, num_workers=4, pin_memory=True)   # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
     train_loader = DataLoader(train_set, shuffle=True, **loader_args)
     val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
+    
     '''
     # (Initialize logging)
     experiment = wandb.init(project='U-Net', resume='allow', anonymous='must')
@@ -94,23 +95,26 @@ def train_net(net,
             for batch in train_loader:
                 
                 # Prepare data
-                images = batch['image']
-                true_masks = batch['mask']
+                images = batch[0]
+                true_masks = batch[1]
                 # Check that channels match
+                ''' 
+                #AttributeError: 'Unet' object has no attribute 'n_channels'
                 assert images.shape[1] == net.n_channels, \
                     f'Network has been defined with {net.n_channels} input channels, ' \
                     f'but loaded images have {images.shape[1]} channels. Please check that ' \
                     'the images are loaded correctly.'
+                '''
                 # Move data to device
                 images = images.to(device=device, dtype=torch.float32)
                 true_masks = true_masks.to(device=device, dtype=torch.long)
 
-                
+                # Make prediction and calculate loss
                 with torch.cuda.amp.autocast(enabled=amp):
                     masks_pred = net(images)        # net is the UNET model
                     loss = criterion(masks_pred, true_masks) \
                            + dice_loss(F.softmax(masks_pred, dim=1).float(),
-                                       F.one_hot(true_masks, net.n_classes).permute(0, 3, 1, 2).float(),
+                                       F.one_hot(true_masks, 2).permute(0, 3, 1, 2).float(),
                                        multiclass=True)     # Loss function is the sum of cross entropy and Dice loss
                            
                 # Optimisation step
@@ -132,19 +136,17 @@ def train_net(net,
                 '''
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
 
+                '''
                 # Evaluation round
                 division_step = (n_train // (10 * batch_size))
                 if division_step > 0:
                     if global_step % division_step == 0:
+                        
                         histograms = {}
                         for tag, value in net.named_parameters():
                             tag = tag.replace('/', '.')
                             histograms['Weights/' + tag] = wandb.Histogram(value.data.cpu())
                             histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
-
-                        val_score = evaluate(net, val_loader, device)
-                        scheduler.step(val_score)
-
                         logging.info('Validation Dice score: {}'.format(val_score))
                         experiment.log({
                             'learning rate': optimizer.param_groups[0]['lr'],
@@ -158,6 +160,12 @@ def train_net(net,
                             'epoch': epoch,
                             **histograms
                         })
+                '''
+
+            val_score = evaluate_model(net, val_loader, device)
+            scheduler.step(val_score)
+            print(f'Validation score of epoch {epoch + 1} was {val_score}')
+
 
         if save_checkpoint:
             Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
@@ -200,21 +208,24 @@ if __name__ == '__main__':
     # Change here to adapt to your data
     # n_channels=3 for RGB images
     # n_classes is the number of probabilities you want to get per pixel
-    net = UNet(numChannels=3, classes=2, dropout = 0.1)
+    net = Unet(numChannels=1, classes=2, dropout = 0.1)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     net.to(device=device)
     
     try:
         train_net(net=net,
                   epochs= 5, # Set epochs
-                  batch_size= 1, # Batch size
+                  batch_size= 2, # Batch size
                   learning_rate=0.001, # Learning rate
                   device=device,
-                  img_scale=0.5,
                   val_percent=0.1, # Percent of test set
                   save_checkpoint = False,
-                  amp=False)
+                  amp=False,
+                  n_images = None) # How many images per epoch if None goes whole dataset
     except KeyboardInterrupt:
+        pass
+        '''
         torch.save(net.state_dict(), 'INTERRUPTED.pth')
         logging.info('Saved interrupt')
         sys.exit(0)
+        '''
