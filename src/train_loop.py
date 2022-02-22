@@ -32,7 +32,6 @@ DATA_DIR = os.path.join(os.getcwd(), "data")
 TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
 LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
 LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
-IMG_SIZE = 572
 
 # Hyperparameter defaults here
 def train_net(net,
@@ -42,13 +41,14 @@ def train_net(net,
               learning_rate: float = 0.001,
               val_percent: float = 0.1,
               save_checkpoint: bool = True,
-              amp: bool = False):
+              amp: bool = False,
+              n_images = None):
     
     # NOTE the whole datahandling could be moved somewhere else (sections 1-3)
     
     # 1. Create dataset
 
-    dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR)
+    dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, n_images)
 
     # 2. Split into train / validation partitions
     n_val = int(len(dataset) * val_percent)
@@ -109,12 +109,12 @@ def train_net(net,
                 images = images.to(device=device, dtype=torch.float32)
                 true_masks = true_masks.to(device=device, dtype=torch.long)
 
-                
+                # Make prediction and calculate loss
                 with torch.cuda.amp.autocast(enabled=amp):
                     masks_pred = net(images)        # net is the UNET model
                     loss = criterion(masks_pred, true_masks) \
                            + dice_loss(F.softmax(masks_pred, dim=1).float(),
-                                       F.one_hot(true_masks, net.n_classes).permute(0, 3, 1, 2).float(),
+                                       F.one_hot(true_masks, 2).permute(0, 3, 1, 2).float(),
                                        multiclass=True)     # Loss function is the sum of cross entropy and Dice loss
                            
                 # Optimisation step
@@ -136,22 +136,17 @@ def train_net(net,
                 '''
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
 
-                # Evaluation round
                 '''
+                # Evaluation round
                 division_step = (n_train // (10 * batch_size))
                 if division_step > 0:
                     if global_step % division_step == 0:
+                        
                         histograms = {}
                         for tag, value in net.named_parameters():
                             tag = tag.replace('/', '.')
                             histograms['Weights/' + tag] = wandb.Histogram(value.data.cpu())
                             histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
-
-                        val_score = evaluate(net, val_loader, device)
-                        scheduler.step(val_score)
-                        
-
-                        
                         logging.info('Validation Dice score: {}'.format(val_score))
                         experiment.log({
                             'learning rate': optimizer.param_groups[0]['lr'],
@@ -166,6 +161,11 @@ def train_net(net,
                             **histograms
                         })
                 '''
+
+            val_score = evaluate_model(net, val_loader, device)
+            scheduler.step(val_score)
+            print(f'Validation score of epoch {epoch + 1} was {val_score}')
+
 
         if save_checkpoint:
             Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
@@ -215,13 +215,17 @@ if __name__ == '__main__':
     try:
         train_net(net=net,
                   epochs= 5, # Set epochs
-                  batch_size= 3, # Batch size
+                  batch_size= 2, # Batch size
                   learning_rate=0.001, # Learning rate
                   device=device,
                   val_percent=0.1, # Percent of test set
                   save_checkpoint = False,
-                  amp=False)
+                  amp=False,
+                  n_images = None) # How many images per epoch if None goes whole dataset
     except KeyboardInterrupt:
+        pass
+        '''
         torch.save(net.state_dict(), 'INTERRUPTED.pth')
         logging.info('Saved interrupt')
         sys.exit(0)
+        '''

@@ -18,7 +18,7 @@ DATA_DIR = os.path.join(os.getcwd(), "data")
 TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
 LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
 LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
-IMG_SIZE = 572
+IMG_SIZE = 512
 
 
 class DataLoaderException(Exception):
@@ -50,7 +50,7 @@ class MaskedDataset(Dataset):
     img_dir: The directory containing ONLY images used foor this data set
     mask_dir: The directory containing ONLY masks of images in the same order as the images are found in img_dir
     """
-    def __init__(self, img_dir, mask_path):
+    def __init__(self, img_dir, mask_path, lenght=None):
         if not os.path.isdir(img_dir):
             raise DataLoaderException(f"The first argument 'img_dir' is not a directory, it is {img_dir}")
         if not os.path.isdir(mask_path):
@@ -60,6 +60,7 @@ class MaskedDataset(Dataset):
         self.im_suffix = "." + os.listdir(img_dir)[0].split(".")[-1]
         self.ids = []
         self.masks = {}
+        self.lenght = lenght
         print("Reading masks...")
         for filename in tqdm(os.listdir(mask_path)):
             # Masks should be named after the original image file.
@@ -100,4 +101,5 @@ class MaskedDataset(Dataset):
         
     def __len__(self):
         # return len(dataset)
-        return len(os.listdir(self.img_dir))        
+        if self.lenght: return self.lenght
+        else: return len(os.listdir(self.img_dir))        
