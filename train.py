@@ -8,7 +8,9 @@ from src.model import Unet
 from src.data_loader import MaskedDataset
 from torch.utils.data import DataLoader
 
-
+'''
+based on https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html
+'''
 DATA_DIR = os.path.join(os.getcwd(), "data")
 LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
 LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
