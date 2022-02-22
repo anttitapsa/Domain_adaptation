@@ -18,7 +18,7 @@ DATA_DIR = os.path.join(os.getcwd(), "data")
 TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
 LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
 LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
-IMG_SIZE = 572
+IMG_SIZE = 512 #muutos
 
 
 class DataLoaderException(Exception):
@@ -57,7 +57,7 @@ class MaskedDataset(Dataset):
             raise DataLoaderException(f"The second argument 'mask_path' is not a directory, it is {mask_path}")
         
         self.img_dir = img_dir
-        self.im_suffix = "." + os.listdir(img_dir)[0].split(".")[-1]
+        self.im_suffix = "." + os.listdir(img_dir)[0].split(".")[-1] 
         self.ids = []
         self.masks = {}
         print("Reading masks...")
