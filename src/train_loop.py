@@ -42,9 +42,10 @@ def train_net(net,
               learning_rate: float = 0.001,
               val_percent: float = 0.1,
               save_checkpoint: bool = True,
-              amp: bool = False,
-              n_images = None,
-              in_memory = False):
+              amp: bool = False#,
+              # n_images = None,
+              #in_memory = False
+              ):
     
     # NOTE the whole datahandling could be moved somewhere else (sections 1-3)
     
@@ -214,7 +215,7 @@ if __name__ == '__main__':
     net = Unet(numChannels=1, classes=2, dropout = 0.1)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     net.to(device=device)
-    dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=n_images, in_memory=in_memory)
+    dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=True)
     
     try:
         train_net(net=net,
@@ -226,8 +227,9 @@ if __name__ == '__main__':
                   val_percent=0.1, # Percent of test set
                   save_checkpoint = False,
                   amp=False,
-                  n_images = None,  # How many images per epoch if None goes whole dataset
-                  in_memory = True)  # If true, load all images into memory at setupx
+                  #n_images = None,  # How many images per epoch if None goes whole dataset
+                  #in_memory = True # If true, load all images into memory at setupx
+                  )  
         torch.save(net.state_dict(), 'model.pth')
     except KeyboardInterrupt:
         pass
