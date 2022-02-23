@@ -42,13 +42,14 @@ def train_net(net,
               val_percent: float = 0.1,
               save_checkpoint: bool = True,
               amp: bool = False,
-              n_images = None):
+              n_images = None,
+              in_memory = False):
     
     # NOTE the whole datahandling could be moved somewhere else (sections 1-3)
     
     # 1. Create dataset
 
-    dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, n_images)
+    dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=n_images, in_memory=in_memory)
 
     # 2. Split into train / validation partitions
     n_val = int(len(dataset) * val_percent)
@@ -221,7 +222,9 @@ if __name__ == '__main__':
                   val_percent=0.1, # Percent of test set
                   save_checkpoint = False,
                   amp=False,
-                  n_images = None) # How many images per epoch if None goes whole dataset
+                  n_images = None,  # How many images per epoch if None goes whole dataset
+                  in_memory = True)  # If true, load all images into memory at setupx
+        torch.save(net.state_dict(), 'model.pth')
     except KeyboardInterrupt:
         pass
         '''
