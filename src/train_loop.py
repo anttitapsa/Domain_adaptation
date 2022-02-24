@@ -220,7 +220,7 @@ if __name__ == '__main__':
                   batch_size= 2, # Batch size
                   learning_rate=0.001, # Learning rate
                   device=device,
-                  val_percent=0.1, # Percent of test set
+                  val_percent=0.05, # Percent of test set
                   save_checkpoint = False,
                   amp=False,
                   n_images = None,  # How many images per epoch if None goes whole dataset
