@@ -32,6 +32,7 @@ DATA_DIR = os.path.join(os.getcwd(), "data")
 TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
 LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
 LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
+dir_checkpoint = os.path.join(os.getcwd(), "model")
 
 # Hyperparameter defaults here
 def train_net(net,
