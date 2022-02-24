@@ -221,7 +221,7 @@ if __name__ == '__main__':
                   learning_rate=0.001, # Learning rate
                   device=device,
                   val_percent=0.05, # Percent of test set
-                  save_checkpoint = False,
+                  save_checkpoint = True,
                   amp=False,
                   n_images = None,  # How many images per epoch if None goes whole dataset
                   in_memory = False)  # If true, load all images into memory at setupx
