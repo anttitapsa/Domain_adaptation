@@ -224,7 +224,7 @@ if __name__ == '__main__':
                   save_checkpoint = False,
                   amp=False,
                   n_images = None,  # How many images per epoch if None goes whole dataset
-                  in_memory = True)  # If true, load all images into memory at setupx
+                  in_memory = False)  # If true, load all images into memory at setupx
         torch.save(net.state_dict(), 'model.pth')
     except KeyboardInterrupt:
         pass
