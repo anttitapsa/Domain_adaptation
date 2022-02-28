@@ -167,7 +167,7 @@ def train_net(net,
             #Path(dir_checkpoint).makedirs(parents=True, exist_ok=True)
             #Path(os.path.join(dir_checkpoint, f'model_{datetime.now().date()}'))
             torch.save(net, str(os.path.join(save_dir, 'checkpoint_epoch{}_{}.pth'.format(epoch + 1, datetime.now().date()))))
-            logging.info(f'Checkpoint {epoch + 1} saved in file checkpoint_epoch{epoch +1}_{datetime.now.date()}.pth!')
+            logging.info(f'Checkpoint {epoch + 1} saved in file checkpoint_epoch{epoch +1}_{datetime.now().date()}.pth!')
 
 '''
 # Function to help logging
