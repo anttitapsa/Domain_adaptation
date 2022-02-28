@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader, random_split
 
 # Loading bar
 from tqdm import tqdm
+from datetime import date
 
 # Change imports below these are from other modules
 # Import data
@@ -32,6 +33,7 @@ DATA_DIR = os.path.join(os.getcwd(), "data")
 TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
 LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
 LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
+dir_checkpoint = os.path.join(os.getcwd(), "model", )
 
 # Hyperparameter defaults here
 def train_net(net,
@@ -173,8 +175,8 @@ def train_net(net,
 
         if save_checkpoint:
             Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
-            torch.save(net.state_dict(), str(dir_checkpoint / 'checkpoint_epoch{}.pth'.format(epoch + 1)))
-            logging.info(f'Checkpoint {epoch + 1} saved!')
+            torch.save(net, str(os.path.join(dir_checkpoint + 'checkpoint_epoch{}_{}.pth'.format(epoch + 1, date.today()))))
+            print(f'Checkpoint {epoch + 1} saved!')
 
 '''
 # Function to help logging
@@ -215,22 +217,22 @@ if __name__ == '__main__':
     net = Unet(numChannels=1, classes=2, dropout = 0.1)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     net.to(device=device)
-    dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=True)
+    dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=10, in_memory=False)
     
     try:
         train_net(net=net,
                   dataset = dataset,
-                  epochs= 5, # Set epochs
+                  epochs= 1, # Set epochs
                   batch_size= 2, # Batch size
                   learning_rate=0.001, # Learning rate
                   device=device,
                   val_percent=0.1, # Percent of test set
-                  save_checkpoint = False,
-                  amp=False,
+                  save_checkpoint = True,
+                  amp=False
                   #n_images = None,  # How many images per epoch if None goes whole dataset
                   #in_memory = True # If true, load all images into memory at setupx
                   )  
-        torch.save(net.state_dict(), 'model.pth')
+        #torch.save(net.state_dict(), 'model.pth')
     except KeyboardInterrupt:
         pass
         '''
