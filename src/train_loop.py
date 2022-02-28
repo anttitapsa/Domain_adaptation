@@ -7,6 +7,8 @@ import sys
 import os
 from pathlib import Path
 
+
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -16,7 +18,7 @@ from torch.utils.data import DataLoader, random_split
 
 # Loading bar
 from tqdm import tqdm
-from datetime import date
+from datetime import date, datetime
 
 # Change imports below these are from other modules
 # Import data
@@ -50,11 +52,6 @@ def train_net(net,
               ):
     
     # NOTE the whole datahandling could be moved somewhere else (sections 1-3)
-    
-    # 1. Create dataset 
-    #create dataset outside of training, Antti 23.02.2022
-
-    #dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=n_images, in_memory=in_memory)
 
     # 2. Split into train / validation partitions
     n_val = int(len(dataset) * val_percent)
@@ -66,25 +63,11 @@ def train_net(net,
     train_loader = DataLoader(train_set, shuffle=True, **loader_args)
     val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
     
-    '''
-    # (Initialize logging)
-    experiment = wandb.init(project='U-Net', resume='allow', anonymous='must')
-    experiment.config.update(dict(epochs=epochs, batch_size=batch_size, learning_rate=learning_rate,
-                                  val_percent=val_percent, save_checkpoint=save_checkpoint, img_scale=img_scale,
-                                  amp=amp))
-
-    logging.info(f'Starting training:
-        Epochs:          {epochs}
-        Batch size:      {batch_size}
-        Learning rate:   {learning_rate}
-        Training size:   {n_train}
-        Validation size: {n_val}
-        Checkpoints:     {save_checkpoint}
-        Device:          {device.type}
-        Images scaling:  {img_scale}
-        Mixed Precision: {amp}
-    ')
-    '''
+        # 1. Create Log
+    logging.basicConfig(filename='model_' + str(datetime.now().date()) +'.log', level=logging.DEBUG)
+    logging.info(f'Training date and time:  {str(datetime.now())}')
+    logging.info(f'Starting training:\nEpochs:          {epochs}\nBatch size:      {batch_size}\nLearning rate:   {learning_rate}\nValidation percent: {val_percent}\nTraining size:   {n_train}\nValidation size: {n_val}\nCheckpoints:     {save_checkpoint}\nDevice:          {device.name}\nMixed Precision: {amp}')
+ 
 
     # 4. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
     optimizer = optim.RMSprop(net.parameters(), lr=learning_rate, weight_decay=1e-8, momentum=0.9) # https://pytorch.org/docs/stable/generated/torch.optim.RMSprop.html
@@ -133,13 +116,7 @@ def train_net(net,
                 pbar.update(images.shape[0])
                 global_step += 1
                 epoch_loss += loss.item()
-                '''
-                experiment.log({
-                    'train loss': loss.item(),
-                    'step': global_step,
-                    'epoch': epoch
-                })
-                '''
+                
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
 
                 '''
@@ -167,17 +144,21 @@ def train_net(net,
                             **histograms
                         })
                 '''
+            logging.info({
+            'train loss': loss.item(),
+            'step': global_step,
+            'epoch': epoch+1
+            })
 
             val_score = evaluate_model(net, val_loader, device)
             scheduler.step(val_score)
-            print(f'Validation score of epoch {epoch + 1} was {val_score}')
+            logging.info(f'Validation score of epoch {epoch + 1} was {val_score}')
 
 
         if save_checkpoint:
             Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
-            torch.save(net, str(os.path.join(dir_checkpoint, 'checkpoint_epoch{}_{}.pth'.format(epoch + 1, date.today()))))
-            print(f'Checkpoint {epoch + 1} saved!')
-            print(str(os.path.join(dir_checkpoint, 'checkpoint_epoch{}_{}.pth'.format(epoch + 1, date.today()))))
+            torch.save(net, str(os.path.join(dir_checkpoint, 'checkpoint_epoch{}_{}.pth'.format(epoch + 1, datetime.now().date()))))
+            logging.info(f'Checkpoint {epoch + 1} saved in file checkpoint_epoch{epoch +1}_{datetime.now.date()}.pth!')
 
 '''
 # Function to help logging
