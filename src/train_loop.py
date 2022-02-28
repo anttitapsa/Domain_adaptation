@@ -175,8 +175,9 @@ def train_net(net,
 
         if save_checkpoint:
             Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
-            torch.save(net, str(os.path.join(dir_checkpoint + 'checkpoint_epoch{}_{}.pth'.format(epoch + 1, date.today()))))
+            torch.save(net, str(os.path.join(dir_checkpoint, 'checkpoint_epoch{}_{}.pth'.format(epoch + 1, date.today()))))
             print(f'Checkpoint {epoch + 1} saved!')
+            print(str(os.path.join(dir_checkpoint, 'checkpoint_epoch{}_{}.pth'.format(epoch + 1, date.today()))))
 
 '''
 # Function to help logging
