@@ -213,9 +213,9 @@ if __name__ == '__main__':
     try:
         train_net(net=net,
                   dataset = dataset,
-                  epochs= 1, # Set epochs
+                  epochs= 6, # Set epochs
                   batch_size= 2, # Batch size
-                  learning_rate=0.001, # Learning rate
+                  learning_rate=0.008, # Learning rate
                   device=device,
                   val_percent=0.1, # Percent of test set
                   save_checkpoint = True,
