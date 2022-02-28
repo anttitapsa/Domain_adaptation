@@ -208,7 +208,7 @@ if __name__ == '__main__':
     net = Unet(numChannels=1, classes=2, dropout = 0.1)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     net.to(device=device)
-    dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=10, in_memory=False)
+    dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False)
     
     try:
         train_net(net=net,
