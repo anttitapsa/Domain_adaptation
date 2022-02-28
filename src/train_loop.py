@@ -1,7 +1,7 @@
 # Train loop for Unet from https://github.com/milesial/Pytorch-UNet
 # Lauri has commented some sections but code is untouched or left in comment
 
-import argparse # logging
+import argparse
 import logging # logging duh
 import sys
 import os
@@ -35,7 +35,7 @@ DATA_DIR = os.path.join(os.getcwd(), "data")
 TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
 LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
 LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
-dir_checkpoint = os.path.join(os.getcwd(), "model", )
+dir_checkpoint = os.path.join(os.getcwd(), "model" )
 
 # Hyperparameter defaults here
 def train_net(net,
@@ -53,30 +53,38 @@ def train_net(net,
     
     # NOTE the whole datahandling could be moved somewhere else (sections 1-3)
 
-    # 2. Split into train / validation partitions
+    # 1. Split into train / validation partitions
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
     train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0))
 
-    # 3. Create data loaders 
+    # 2. Create data loaders 
     loader_args = dict(batch_size=batch_size, num_workers=4, pin_memory=True)   # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
     train_loader = DataLoader(train_set, shuffle=True, **loader_args)
     val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
     
-        # 1. Create Log
-    logging.basicConfig(filename='model_' + str(datetime.now().date()) +'.log', level=logging.DEBUG)
-    logging.info(f'Training date and time:  {str(datetime.now())}')
-    logging.info(f'Starting training:\nEpochs:          {epochs}\nBatch size:      {batch_size}\nLearning rate:   {learning_rate}\nValidation percent: {val_percent}\nTraining size:   {n_train}\nValidation size: {n_val}\nCheckpoints:     {save_checkpoint}\nDevice:          {device.name}\nMixed Precision: {amp}')
- 
+    # 3. Model saving location
+    Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
+    model_number = 2
+    save_dir = os.path.join(dir_checkpoint, f'model_{datetime.now().date()}')
+    while os.path.exists(save_dir) == True:
+        model_number += 1
+        save_dir = os.path.join(dir_checkpoint, f'model_{model_number}_{datetime.now().date()}')
+    Path(save_dir).mkdir(parents=True, exist_ok=True)
 
-    # 4. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
+    # 4. Create Log
+    logging.basicConfig(filename=os.path.join(save_dir, 'model_' + str(datetime.now().date()) +'.log'), level=logging.INFO)
+    logging.info(f'Training date and time:  {str(datetime.now())}')
+    logging.info(f'Starting training:\nEpochs:          {epochs}\nBatch size:      {batch_size}\nLearning rate:   {learning_rate}\nValidation percent: {val_percent}\nTraining size:   {n_train}\nValidation size: {n_val}\nCheckpoints:     {save_checkpoint}\nDevice:          {device.type}\nMixed Precision: {amp}')
+       
+    # 5. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
     optimizer = optim.RMSprop(net.parameters(), lr=learning_rate, weight_decay=1e-8, momentum=0.9) # https://pytorch.org/docs/stable/generated/torch.optim.RMSprop.html
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=2)  # goal: maximize Dice score
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)  # Tries to choose best datatype for operations (torch.float16 for convolutions and float32 for reductions)
     criterion = nn.CrossEntropyLoss()   # Cross entropy loss function
     global_step = 0 # For tqdm
 
-    # 5. Begin training, The actual training loop
+    # 6. Begin training, The actual training loop
     for epoch in range(epochs):
         net.train()
         epoch_loss = 0
@@ -156,8 +164,9 @@ def train_net(net,
 
 
         if save_checkpoint:
-            Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
-            torch.save(net, str(os.path.join(dir_checkpoint, 'checkpoint_epoch{}_{}.pth'.format(epoch + 1, datetime.now().date()))))
+            #Path(dir_checkpoint).makedirs(parents=True, exist_ok=True)
+            #Path(os.path.join(dir_checkpoint, f'model_{datetime.now().date()}'))
+            torch.save(net, str(os.path.join(save_dir, 'checkpoint_epoch{}_{}.pth'.format(epoch + 1, datetime.now().date()))))
             logging.info(f'Checkpoint {epoch + 1} saved in file checkpoint_epoch{epoch +1}_{datetime.now.date()}.pth!')
 
 '''
