@@ -37,8 +37,15 @@ class UnMaskedDataset(Dataset):
     def __getitem__(self, idx):
         # return item with possible transforms
         img_path = os.path.join(self.img_dir, os.listdir(self.img_dir)[idx])
-        image = read_image(img_path)
-        return transforms.Resize((IMG_SIZE, IMG_SIZE), image)
+        image = Image.open(img_path)
+        
+        image = transforms.ToTensor()(image)
+        i, j, h, w = transforms.RandomCrop.get_params(
+            image,
+            output_size=(IMG_SIZE, IMG_SIZE))
+        image = transforms.functional.crop(image, i, j, h, w)
+        return image
+        #return transforms.Resize((IMG_SIZE, IMG_SIZE), image)
 
     def __len__(self):
         # return len(dataset)
