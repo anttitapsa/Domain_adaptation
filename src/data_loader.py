@@ -104,7 +104,7 @@ class MaskedDataset(Dataset):
             img_path = os.path.join(self.img_dir, name + self.im_suffix)
             mask_path = os.path.join(self.mask_path, name + "_mask.npy")
             try:
-                image = Image.open(img_path)
+                image = Image.open(img_path).convert('L')
             except FileNotFoundError:
                 raise DataLoaderException(
                     f"Couldn't read image {img_path}. Make sure your data is located in {self.img_dir}!")

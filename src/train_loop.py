@@ -35,6 +35,8 @@ DATA_DIR = os.path.join(os.getcwd(), "data")
 TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
 LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
 LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
+UNITY_IMG_DIR = os.path.join(DATA_DIR, "unity_data", "images")
+UNITY_MASK_DIR = os.path.join(DATA_DIR, "unity_data", "masks")
 dir_checkpoint = os.path.join(os.getcwd(), "model" )
 
 # Hyperparameter defaults here
@@ -61,11 +63,11 @@ def train_net(net,
     # 2. Create data loaders 
     loader_args = dict(batch_size=batch_size, num_workers=4, pin_memory=True)   # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
     train_loader = DataLoader(train_set, shuffle=True, **loader_args)
-    val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
+    val_loader = DataLoader(val_set, shuffle=True, drop_last=True, **loader_args)
     
     # 3. Model saving location
     Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
-    model_number = 2
+    model_number = 1
     save_dir = os.path.join(dir_checkpoint, f'model_{datetime.now().date()}')
     while os.path.exists(save_dir) == True:
         model_number += 1
@@ -208,8 +210,12 @@ if __name__ == '__main__':
     net = Unet(numChannels=1, classes=2, dropout = 0.1)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     net.to(device=device)
-    dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False)
-
+    
+    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False)
+    Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
+    datasets = [LC_dataset, Unity_dataset]
+    dataset = torch.utils.data.ConcatDataset(datasets)
+    
     seed = 123
     test_percent = 0.001
     n_test = int(len(dataset) * test_percent)
@@ -219,7 +225,7 @@ if __name__ == '__main__':
     try:
         train_net(net=net,
                   dataset = train_set,
-                  epochs= 6, # Set epochs
+                  epochs= 10, # Set epochs
                   batch_size= 2, # Batch size
                   learning_rate=0.008, # Learning rate
                   device=device,
