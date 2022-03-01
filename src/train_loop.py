@@ -209,10 +209,16 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     net.to(device=device)
     dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False)
+
+    seed = 123
+    test_percent = 0.001
+    n_test = int(len(dataset) * test_percent)
+    n_train = len(dataset) - n_test
+    train_set, test_set = random_split(dataset, [n_train, n_test], generator=torch.Generator().manual_seed(123))
     
     try:
         train_net(net=net,
-                  dataset = dataset,
+                  dataset = train_set,
                   epochs= 6, # Set epochs
                   batch_size= 2, # Batch size
                   learning_rate=0.008, # Learning rate
