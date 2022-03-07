@@ -12,6 +12,7 @@ src/__pycache__/model.cpython-39.pyc
 src/__pycache__/functions.cpython-39.pyc
 src/__pycache__/evaluate.cpython-39.pyc
 env
+src/.ipynb_checkpoints
 .vscode/
 *__pycache__*
 *.npy
@@ -21,3 +22,5 @@ env
 /data
 /model
 *.pth
+*.log
+/model
