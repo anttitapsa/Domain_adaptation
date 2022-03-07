@@ -20,6 +20,7 @@ src/.ipynb_checkpoints
 *.png
 *.jpeg
 /data
+/model
 *.pth
 *.log
 /model

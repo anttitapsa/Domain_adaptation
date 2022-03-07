@@ -33,3 +33,18 @@ Finally, download the wanted files using `wget`.
 Full instructions for downloading the LIVECell and file structures of dataset can be found [here](https://sartorius-research.github.io/LIVECell/#:~:text=Download%20all%20of%20LIVECell). 
 </details>
 
+## Connect aalto linux server for training the neural net
+
+In linux terminal use `ssh` command to connect server. Working servers are `lyta.aalto.fi` and `kosh.aalto.fi`. You can contact servers by runing the for example command:
+
+`ssh <Aalto_username>@lyta.aalto.fi`
+
+After you have connected server, you need to connect computer having GPU. Those computers locate in CS-building's Paniikki classroom.
+
+The names of computers in Paniikki:
+
+befunge, bit, bogo, brainfuck, deadfish, emo, entropy, false, fractran, fugue, glass, haifu, headache, intercal, malbolge, numberwang, ook, piet, regexpl, remorse, rename, shakespeare, smith, smurf, spaghetti, thue, unlambda, wake, whenever, whitespace, zombie
+
+You can connect computer by runing `ssh` command in server. Example:
+
+`ssh befunge`
