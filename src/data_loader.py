@@ -37,7 +37,8 @@ class UnMaskedDataset(Dataset):
     def __getitem__(self, idx):
         # return item with possible transforms
         img_path = os.path.join(self.img_dir, os.listdir(self.img_dir)[idx])
-        image = Image.open(img_path).convert('L')
+        # Image is changed grayscale
+        image = Image.open(img_path).convert('L') 
         
         image = transforms.ToTensor()(image)
         i, j, h, w = transforms.RandomCrop.get_params(

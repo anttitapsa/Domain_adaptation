@@ -48,9 +48,7 @@ def train_net(net,
               learning_rate: float = 0.001,
               val_percent: float = 0.1,
               save_checkpoint: bool = True,
-              amp: bool = False#,
-              # n_images = None,
-              #in_memory = False
+              amp: bool = False
               ):
     
     # NOTE the whole datahandling could be moved somewhere else (sections 1-3)
@@ -96,14 +94,7 @@ def train_net(net,
                 # Prepare data
                 images = batch[0]
                 true_masks = batch[1]
-                # Check that channels match
-                ''' 
-                #AttributeError: 'Unet' object has no attribute 'n_channels'
-                assert images.shape[1] == net.n_channels, \
-                    f'Network has been defined with {net.n_channels} input channels, ' \
-                    f'but loaded images have {images.shape[1]} channels. Please check that ' \
-                    'the images are loaded correctly.'
-                '''
+  
                 # Move data to device
                 images = images.to(device=device, dtype=torch.float32)
                 true_masks = true_masks.to(device=device, dtype=torch.long)
@@ -171,40 +162,11 @@ def train_net(net,
             torch.save(net, str(os.path.join(save_dir, 'checkpoint_epoch{}_{}.pth'.format(epoch + 1, datetime.now().date()))))
             logging.info(f'Checkpoint {epoch + 1} saved in file checkpoint_epoch{epoch +1}_{datetime.now().date()}.pth!')
 
-'''
-# Function to help logging
-def get_args():
-    parser = argparse.ArgumentParser(description='Train the UNet on images and target masks')
-    parser.add_argument('--epochs', '-e', metavar='E', type=int, default=5, help='Number of epochs')
-    parser.add_argument('--batch-size', '-b', dest='batch_size', metavar='B', type=int, default=1, help='Batch size')
-    parser.add_argument('--learning-rate', '-l', metavar='LR', type=float, default=0.00001,
-                        help='Learning rate', dest='lr')
-    parser.add_argument('--load', '-f', type=str, default=False, help='Load model from a .pth file')
-    parser.add_argument('--scale', '-s', type=float, default=0.5, help='Downscaling factor of the images')
-    parser.add_argument('--validation', '-v', dest='val', type=float, default=10.0,
-                        help='Percent of the data that is used as validation (0-100)')
-    parser.add_argument('--amp', action='store_true', default=False, help='Use mixed precision')
-
-    return parser.parse_args()
-'''
 
 if __name__ == '__main__':
-    '''
-    # Prepare logging and hyperparameters from get_args
-    args = get_args()
-    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    logging.info(f'Using device {device}')
-    logging.info(f'Network:\n'
-                 f'\t{net.n_channels} input channels\n'
-                 f'\t{net.n_classes} output channels (classes)\n'
-                 f'\t{"Bilinear" if net.bilinear else "Transposed conv"} upscaling')
 
-    if args.load:
-        net.load_state_dict(torch.load(args.load, map_location=device))
-        logging.info(f'Model loaded from {args.load}')
-    '''
-
-    # Change here to adapt to your data
+    # Change here to adapt to your data 
+    # now dataset is combined dataset using liveCell and synthetic dataset 
     # n_channels=3 for RGB images
     # n_classes is the number of probabilities you want to get per pixel
     net = Unet(numChannels=1, classes=2, dropout = 0.1)
