@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
+from datetime import date, datetime
+from pathlib import Path
 import random
 import os
 from tqdm import tqdm 
@@ -149,7 +151,7 @@ if __name__ == '__main__':
     #Creating dataloaders ;___;
 
     DATA_DIR = os.path.join(os.getcwd(), "data")
-    TARGET_DATA_DIR = os.path.join(DATA_DIR, "test_target")
+    TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
     LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
     LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
     UNITY_IMG_DIR = os.path.join(DATA_DIR, "unity_data", "images")
@@ -157,10 +159,11 @@ if __name__ == '__main__':
     dir_checkpoint = os.path.join(os.getcwd(), "model" )
 
     LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False)
-    Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
-    datasets = [LC_dataset, Unity_dataset]
-    dataset = torch.utils.data.ConcatDataset(datasets)
-
+    #Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=10, in_memory=False)
+    #datasets = [LC_dataset, Unity_dataset]
+    #dataset = torch.utils.data.ConcatDataset(datasets)
+    dataset = LC_dataset
+    
     seed = 123
     test_percent = 0.001
     n_test = int(len(dataset) * test_percent)
@@ -174,6 +177,15 @@ if __name__ == '__main__':
 
     Target_dataset = UnMaskedDataset(TARGET_DATA_DIR)
     target_train_loader = DataLoader(train_set, shuffle=True, **loader_args)
+    
+    # Model saving location
+    Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
+    model_number = 1
+    save_dir = os.path.join(dir_checkpoint, f'CycleGan_{datetime.now().date()}')
+    while os.path.exists(save_dir) == True:
+        model_number += 1
+        save_dir = os.path.join(dir_checkpoint, f'model_{model_number}_{datetime.now().date()}')
+    Path(save_dir).mkdir(parents=True, exist_ok=True)
 
     #Losses
     criterion_GAN = nn.MSELoss()
@@ -195,7 +207,8 @@ if __name__ == '__main__':
     ID_A2B = []
     disc_A = []
     disc_B = [] 
-
+    
+    '''
     FDL_A2B_t = []
     FDL_B2A_t = []
     CL_A_t = []
@@ -204,7 +217,7 @@ if __name__ == '__main__':
     ID_A2B_t = []
     disc_A_t = []
     disc_B_t = []
-
+    '''
     # A = target
     # B = source
     # I.E. G_A2B = Generator from target to source
@@ -357,8 +370,8 @@ if __name__ == '__main__':
         disc_B = []
         disc_A = []
              
-        torch.save(G_A2B, dir_checkpoint+name+"_G_A2B.pt")
-        torch.save(G_B2A, dir_checkpoint+name+"_G_B2A.pt")
-        torch.save(D_A, dir_checkpoint+name+"_D_A.pt")
-        torch.save(D_B, dir_checkpoint+name+"_D_B.pt")
+        torch.save(G_A2B, str(os.path.join(save_dir, "_G_A2B.pt")))
+        torch.save(G_B2A, str(os.path.join(save_dir,"_G_B2A.pt")))
+        torch.save(D_A, str(os.path.join(save_dir,"_D_A.pt")))
+        torch.save(D_B, str(os.path.join(save_dir,"_D_B.pt")))
 
