@@ -1,4 +1,4 @@
-
+from argon2 import Parameters
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -209,10 +209,10 @@ if __name__ == '__main__':
     epochs = 10
     criterion = nn.L1Loss()
 
-    optimizer_D_A = torch.optim.Adam(lr=0.0002, betas=0.5)
-    optimizer_D_B = torch.optim.Adam(lr=0.0002, betas=0.5)
-    optimizer_G_A2B = torch.optim.Adam(lr=0.0002, betas=0.5)
-    optimizer_G_B2A = torch.optim.Adam(lr=0.0002, betas=0.5)
+    optimizer_D_A = torch.optim.Adam(D_A.Parameters(),lr=0.0002, betas=0.5)
+    optimizer_D_B = torch.optim.Adam(D_B.Parameters(),lr=0.0002, betas=0.5)
+    optimizer_G_A2B = torch.optim.Adam(G_A2B.Parameters(),lr=0.0002, betas=0.5)
+    optimizer_G_B2A = torch.optim.Adam(G_B2A.Parameters(),lr=0.0002, betas=0.5)
 
     print("Starting Training Loop...")
 

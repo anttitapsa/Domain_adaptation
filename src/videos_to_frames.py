@@ -36,6 +36,7 @@ def main(source_dir, target_dir):
     # make a folder by the name of the video file
     if not os.path.isdir(target_dir):
         os.mkdir(target_dir)
+        print(source_dir)
     if not os.path.isdir(source_dir):
         raise VideoToFramesException(
             f"Video data not found. Please ensure there's a folder of videos at {source_dir}")
