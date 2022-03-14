@@ -174,7 +174,12 @@ if __name__ == '__main__':
 
     Target_dataset = UnMaskedDataset(TARGET_DATA_DIR)
     target_train_loader = DataLoader(train_set, shuffle=True, **loader_args)
-   
+
+    #Losses
+    criterion_GAN = nn.MSELoss()
+    criterion_cycle = nn.L1Loss()
+    criterion_identity = nn.L1Loss()
+
     # lists ;___;
     name = "nice_try"
     img_list = []
@@ -243,6 +248,7 @@ if __name__ == '__main__':
 
             # Discriminator A
             optimizer_D_A.zero_grad()
+            '''
             if((iters > 0 or epoch > 0) and iters % 3 == 0):
                 rand_int = random.randint(5, old_a_fake.shape[0]-1)
                 Disc_loss_A = LSGAN_D(D_A(a_real), D_A(old_a_fake[rand_int-5:rand_int].detach()))
@@ -251,12 +257,16 @@ if __name__ == '__main__':
             else:
                 Disc_loss_A = LSGAN_D(D_A(a_real), D_A(a_fake.detach()))
                 D_A_losses.append(Disc_loss_A.item())
+            '''
+            Disc_loss_A = LSGAN_D(D_A(a_real), D_A(a_fake.detach()))
+            D_A_losses.append(Disc_loss_A.item())
 
             Disc_loss_A.backward()
             optimizer_D_A.step()
 
             # Discriminator B
             optimizer_D_B.zero_grad()
+            '''
             if((iters > 0 or epoch > 0) and iters % 3 == 0):
                 rand_int = random.randint(5, old_b_fake.shape[0]-1)
                 Disc_loss_B =  LSGAN_D(D_B(b_real), D_B(old_b_fake[rand_int-5:rand_int].detach()))
@@ -264,6 +274,9 @@ if __name__ == '__main__':
             else:
                 Disc_loss_B =  LSGAN_D(D_B(b_real), D_B(b_fake.detach()))
                 D_B_losses.append(Disc_loss_B.item())
+            '''
+            Disc_loss_B =  LSGAN_D(D_B(b_real), D_B(b_fake.detach()))
+            D_B_losses.append(Disc_loss_B.item())
 
             Disc_loss_B.backward()
             optimizer_D_B.step()
@@ -303,7 +316,7 @@ if __name__ == '__main__':
             ID_A2B.append(Id_loss_A2B)
             disc_A.append(Disc_loss_A)
             disc_B.append(Disc_loss_B)
-
+            '''
             if(iters == 0 and epoch == 0):
                 old_b_fake = b_fake.clone()
                 old_a_fake = a_fake.clone()
@@ -314,7 +327,7 @@ if __name__ == '__main__':
             elif(old_b_fake.shape[0]< 25):
                 old_b_fake = torch.cat((b_fake.clone(),old_b_fake))
                 old_a_fake = torch.cat((a_fake.clone(),old_a_fake))
-
+            '''
             iters += 1
             del data_source, data_target, a_real, b_real, a_fake, b_fake
 
@@ -347,3 +360,4 @@ if __name__ == '__main__':
         torch.save(G_B2A, dir_checkpoint+name+"_G_B2A.pt")
         torch.save(D_A, dir_checkpoint+name+"_D_A.pt")
         torch.save(D_B, dir_checkpoint+name+"_D_B.pt")
+
