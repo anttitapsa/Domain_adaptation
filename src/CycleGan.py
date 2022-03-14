@@ -226,7 +226,7 @@ if __name__ == '__main__':
 
     for epoch in range(epochs):
         iters = 0
-        for i, (data_source, data_target) in enumerate(tqdm(source_train_loader, target_train_loader), 0):
+        for i, (data_source, data_target) in enumerate(zip(source_train_loader, target_train_loader), 0):
 
             #set model input
             a_real = data_source[0].to(device)
