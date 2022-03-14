@@ -207,6 +207,12 @@ if __name__ == '__main__':
     G_B2A = Generator()
     D_A = Discriminator() 
     D_B = Discriminator()
+    
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    G_A2B.to(device)
+    G_B2A.to(device) 
+    D_A.to(device)  
+    D_B.to(device) 
     epochs = 10
     criterion = nn.L1Loss()
 
@@ -220,7 +226,6 @@ if __name__ == '__main__':
     for epoch in range(epochs):
         iters = 0
         for i, (data_source, data_target) in enumerate(tqdm(zip(source_train_loader, target_train_loader), 0)):
-            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
             #set model input
             a_real = data_source[0].to(device)
