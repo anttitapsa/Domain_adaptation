@@ -147,15 +147,15 @@ if __name__ == '__main__':
     #Creating dataloaders ;___;
 
     DATA_DIR = os.path.join(os.getcwd(), "data")
-    TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
+    TARGET_DATA_DIR = os.path.join(DATA_DIR, "test_target")
     LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
     LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
     UNITY_IMG_DIR = os.path.join(DATA_DIR, "unity_data", "images")
     UNITY_MASK_DIR = os.path.join(DATA_DIR, "unity_data", "masks")
     dir_checkpoint = os.path.join(os.getcwd(), "model" )
 
-    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False)
-    Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
+    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=10, in_memory=False)
+    Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=10, in_memory=False)
     datasets = [LC_dataset, Unity_dataset]
     dataset = torch.utils.data.ConcatDataset(datasets)
 
