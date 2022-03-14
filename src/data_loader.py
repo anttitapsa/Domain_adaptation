@@ -32,13 +32,22 @@ class UnMaskedDataset(Dataset):
     """
     def __init__(self, img_dir):
         # data loading
+        if not os.path.isdir(img_dir):
+            raise DataLoaderException(f"The first argument 'img_dir' is not a directory, it is {img_dir}")
+        
         self.img_dir = img_dir
+
+
 
     def __getitem__(self, idx):
         # return item with possible transforms
         img_path = os.path.join(self.img_dir, os.listdir(self.img_dir)[idx])
         # Image is changed grayscale
-        image = Image.open(img_path).convert('L') 
+        try:
+            image = Image.open(img_path).convert('L')
+        except FileNotFoundError:
+            raise DataLoaderException(
+                f"Couldn't read image {img_path}. Make sure your data is located in {self.img_dir}!")
         
         image = transforms.ToTensor()(image)
         i, j, h, w = transforms.RandomCrop.get_params(
