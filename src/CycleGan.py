@@ -258,6 +258,7 @@ if __name__ == '__main__':
                 Disc_loss_A = LSGAN_D(D_A(a_real), D_A(a_fake.detach()))
                 D_A_losses.append(Disc_loss_A.item())
             '''
+            #hmm
             Disc_loss_A = LSGAN_D(D_A(a_real), D_A(a_fake.detach()))
             D_A_losses.append(Disc_loss_A.item())
 
