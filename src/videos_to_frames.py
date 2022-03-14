@@ -15,8 +15,7 @@ class VideoToFramesException(Exception):
 
 ROOT_DIR = os.getcwd()
 if os.path.basename(ROOT_DIR) != "lst-project":
-    raise VideoToFramesException(
-        f"Please run this module only in root directory lst-project. You're in {os.getcwd()}")
+    raise VideoToFramesException(f"Please run this module only in root directory lst-project. You're in {os.getcwd()}")
 SAVING_FRAMES_PER_SECOND = 5
 SOURCE_DIR = os.path.join(ROOT_DIR, "data", "video_data")
 TARGET_DIR = os.path.join(ROOT_DIR, "data", "target")
