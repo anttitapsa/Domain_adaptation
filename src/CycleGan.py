@@ -96,7 +96,7 @@ class Generator(nn.Module):
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
-        self.disc = nn.Sequential(  nn.Conv2d(  in_channels=chanels,
+        self.disc1 = nn.Sequential(  nn.Conv2d(  in_channels=chanels,
                                                 out_channels=64, 
                                                 kernel_size=4, 
                                                 stride=2,
@@ -109,8 +109,9 @@ class Discriminator(nn.Module):
                                                 stride=2,
                                                 padding=1,
                                                 bias=False),
-                                    nn.InstanceNorm2d(64*2),
-                                    nn.LeakyReLU(negative_slope= 0.2, inplace=True),
+                                    nn.InstanceNorm2d(64*2))
+
+        self.disc2 = nn.Sequential(nn.LeakyReLU(negative_slope= 0.2, inplace=True),
                                     nn.Conv2d(  in_channels=64*2,
                                                 out_channels=4*64, 
                                                 kernel_size=4, 
@@ -132,7 +133,8 @@ class Discriminator(nn.Module):
                                                 stride=1,
                                                 padding=1))
     def forward(self, x):
-        return self.disc.forward(x)
+        y =  self.disc1.forward(x)
+        return self.disc2.forward(y)
 
 
 def LSGAN_D(real, fake):
