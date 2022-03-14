@@ -178,13 +178,12 @@ if __name__ == '__main__':
 
     
     Target_dataset = UnMaskedDataset(TARGET_DATA_DIR)
-    '''
-    test_percent = 0.01
-    n_test = int(len(Target_dataset) * test_percent)
-    n_train = len(Target_dataset) - n_test
-    train_set, test_set = torch.utils.data.random_split(Target_dataset, [n_train, n_test], generator=torch.Generator().manual_seed(seed))
-    '''
-    target_train_loader = DataLoader(train_set, shuffle=True, **loader_args)
+    
+    target_test_percent = 0.01
+    n_test_target = int(len(Target_dataset) * target_test_percent)
+    n_train_target = len(Target_dataset) - n_test_target
+    target_train_set, target_test_set = torch.utils.data.random_split(Target_dataset, [n_train_target, n_test_target], generator=torch.Generator().manual_seed(seed))
+    target_train_loader = DataLoader(target_train_set, shuffle=True, **loader_args)
     
     # Model saving location
     Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
