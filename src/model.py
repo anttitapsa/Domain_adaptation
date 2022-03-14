@@ -12,7 +12,7 @@ import torch.nn.functional as F
 # https://github.com/hlamba28/UNET-TGS 
 # https://github.com/mateuszbuda/brain-segmentation-pytorch/blob/master/unet.py 
 class Unet(Module):
-    # input_image 572x572
+    # input_image 512x512
     # numChannels 1: grayscale and 3 RGB
     # classes: number of labels
     # dropout: During training, randomly zeroes some of the elements of the input tensor with probability 
@@ -112,20 +112,3 @@ class Unet(Module):
             ReLU(inplace = True)
         )
    
-   
-'''class Conv2d_block(Module):
-    # function that adds two convolutional layers
-    def __init__(self, in_channel, out_channel):
-        super(Conv2d_block, self).__init__()
-        self.model = torch.nn.Sequential(
-            Conv2d(in_channel, out_channel, kernel_size = 3, padding = 1),
-            BatchNorm2d(num_features = out_channel),
-            ReLU(inplace = True),
-            Conv2d(out_channel, out_channel, kernel_size = 3, padding = 1),
-            BatchNorm2d(num_features = out_channel),
-            ReLU(inplace = True)
-        )
-
-    def forward(self, x):
-        return self.model(x)
-'''
