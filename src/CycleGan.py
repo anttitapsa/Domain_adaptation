@@ -223,15 +223,11 @@ if __name__ == '__main__':
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
             #set model input
-            if torch.cuda.is_available():
-                a_real = data_source[0].cuda()
-                b_real = data_target[0].cuda()
-            else:
-                a_real = data_source[0]
-                b_real = data_target[0]
+            a_real = data_source[0].to(device)
+            b_real = data_target[0].to(device)
 
-            tensor_ones=torch.ones([a_real.shape[0],1,14,14]).to(device)
-            tensor_zeros=torch.zeros([a_real.shape[0],1,14,14]).to(device)
+            tensor_ones=torch.ones([a_real.shape[0],1,14,14]).cuda()
+            tensor_zeros=torch.zeros([a_real.shape[0],1,14,14]).cuda()
 
             # Generate images
             b_fake = G_A2B(a_real)
