@@ -168,7 +168,7 @@ if __name__ == '__main__':
 
     loader_args = dict(batch_size=batch_size, num_workers=4, pin_memory=True)   # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
     source_train_loader = DataLoader(train_set, shuffle=True, **loader_args)
-    source_val_loader = DataLoader(test_set, shuffle=True, drop_last=True, **loader_args)
+    #source_val_loader = DataLoader(test_set, shuffle=True, drop_last=True, **loader_args)
 
     Target_dataset = UnMaskedDataset(TARGET_DATA_DIR)
     target_train_loader = DataLoader(train_set, shuffle=True, **loader_args)
