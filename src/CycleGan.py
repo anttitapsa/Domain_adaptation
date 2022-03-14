@@ -309,8 +309,8 @@ if __name__ == '__main__':
                 old_a_fake = a_fake.clone()
             elif (old_b_fake.shape[0] == batch_size*5 and b_fake.shape[0]==batch_size):
                 rand_int = random.randint(5, 24)
-                old_b_fake[rand_int-5:rand_int] = b_fake.clone()
-                old_a_fake[rand_int-5:rand_int] = a_fake.clone()
+                old_b_fake[rand_int-2:rand_int] = b_fake.clone()
+                old_a_fake[rand_int-2:rand_int] = a_fake.clone()
             elif(old_b_fake.shape[0]< 25):
                 old_b_fake = torch.cat((b_fake.clone(),old_b_fake))
                 old_a_fake = torch.cat((a_fake.clone(),old_a_fake))
