@@ -168,14 +168,21 @@ if __name__ == '__main__':
     test_percent = 0.001
     n_test = int(len(dataset) * test_percent)
     n_train = len(dataset) - n_test
-    train_set, test_set = torch.utils.data.random_split(dataset, [n_train, n_test], generator=torch.Generator().manual_seed(123))
+
+    train_set, test_set = torch.utils.data.random_split(dataset, [n_train, n_test], generator=torch.Generator().manual_seed(seed))
     batch_size = 2
 
     loader_args = dict(batch_size=batch_size, num_workers=4, pin_memory=True)   # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
     source_train_loader = DataLoader(train_set, shuffle=True, **loader_args)
     #source_val_loader = DataLoader(test_set, shuffle=True, drop_last=True, **loader_args)
 
+    
     Target_dataset = UnMaskedDataset(TARGET_DATA_DIR)
+
+    test_percent = 0.01
+    n_test = int(len(dataset) * test_percent)
+    n_train = len(dataset) - n_test
+    train_set, test_set = torch.utils.data.random_split(Target_dataset, [n_train, n_test], generator=torch.Generator().manual_seed(seed))
     target_train_loader = DataLoader(train_set, shuffle=True, **loader_args)
     
     # Model saving location
