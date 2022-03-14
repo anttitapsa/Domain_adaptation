@@ -1,4 +1,5 @@
 from argon2 import Parameters
+from grpc import Channel
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -82,7 +83,7 @@ class Generator(nn.Module):
                                     nn.ReLU(True),
                                     nn.ReflectionPad2d(3),
                                     nn.Conv2d(  in_channels=features,
-                                                out_channels=3, 
+                                                out_channels=chanels, 
                                                 kernel_size=7, 
                                                 stride=1,
                                                 padding=0),
