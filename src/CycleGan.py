@@ -209,10 +209,10 @@ if __name__ == '__main__':
     epochs = 10
     criterion = nn.L1Loss()
 
-    optimizer_D_A = torch.optim.Adam(D_A.parameters(),lr=0.0002, betas=0.5)
-    optimizer_D_B = torch.optim.Adam(D_B.parameters(),lr=0.0002, betas=0.5)
-    optimizer_G_A2B = torch.optim.Adam(G_A2B.parameters(),lr=0.0002, betas=0.5)
-    optimizer_G_B2A = torch.optim.Adam(G_B2A.parameters(),lr=0.0002, betas=0.5)
+    optimizer_D_A = torch.optim.Adam(D_A.parameters(),lr=0.0002, betas=(0.5, 0.999))
+    optimizer_D_B = torch.optim.Adam(D_B.parameters(),lr=0.0002, betas=(0.5, 0.999))
+    optimizer_G_A2B = torch.optim.Adam(G_A2B.parameters(),lr=0.0002, betas=(0.5, 0.999))
+    optimizer_G_B2A = torch.optim.Adam(G_B2A.parameters(),lr=0.0002, betas=(0.5, 0.999))
 
     print("Starting Training Loop...")
 
