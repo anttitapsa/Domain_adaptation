@@ -9,6 +9,7 @@ import os
 from tqdm import tqdm 
 from data_loader import MaskedDataset, UnMaskedDataset
 
+chanels = 1
 class ResBlock(nn.Module):
     def __init__(self, features):
         super(ResBlock, self).__init__()
@@ -35,8 +36,8 @@ class ResBlock(nn.Module):
 class Generator(nn.Module):
     def __init__(self, features=64, blocks=9):
         super(Generator, self).__init__()
-        self.conv1 = nn.Sequential( nn.ReflectionPad2d(3),
-                                    nn.Conv2d(  in_channels=3,
+        self.conv1 = nn.Sequential( nn.ReflectionPad2d(chanels),
+                                    nn.Conv2d(  in_channels=chanels,
                                                 out_channels=features, 
                                                 kernel_size=7, 
                                                 stride=1,
@@ -96,7 +97,7 @@ class Generator(nn.Module):
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
-        self.disc = nn.Sequential(  nn.Conv2d(  in_channels=3,
+        self.disc = nn.Sequential(  nn.Conv2d(  in_channels=chanels,
                                                 out_channels=64, 
                                                 kernel_size=4, 
                                                 stride=2,
