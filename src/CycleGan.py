@@ -95,6 +95,7 @@ class Generator(nn.Module):
         y = self.ResBlocks.forward(y)
         return self.conv2.forward(y)
 
+
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
@@ -143,49 +144,28 @@ def LSGAN_D(real, fake):
     return (torch.mean((real - 1)**2) + torch.mean(fake**2))
 
 def LSGAN_G(fake):
-    return  torch.mean((fake - 1)**2)
+    return torch.mean((fake - 1)**2)
 
 
-if __name__ == '__main__':
+DATA_DIR = os.path.join(os.getcwd(), "data")
+TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
+LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
+LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
+UNITY_IMG_DIR = os.path.join(DATA_DIR, "unity_data", "images")
+UNITY_MASK_DIR = os.path.join(DATA_DIR, "unity_data", "masks")
+dir_checkpoint = os.path.join(os.getcwd(), "model" )
 
-    #Creating dataloaders ;___;
 
-    DATA_DIR = os.path.join(os.getcwd(), "data")
-    TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
-    LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
-    LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
-    UNITY_IMG_DIR = os.path.join(DATA_DIR, "unity_data", "images")
-    UNITY_MASK_DIR = os.path.join(DATA_DIR, "unity_data", "masks")
-    dir_checkpoint = os.path.join(os.getcwd(), "model" )
+def train_loop(models,
+               datasets,
+               device,
+               model_name,
+               epochs: int = 5,
+               batch_size: int = 1,
+               learning_rate: float = 0.0002,
+               betas = (0.5, 0.999)
+               ):
 
-    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False)
-    Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
-    datasets = [LC_dataset, Unity_dataset]
-    dataset = torch.utils.data.ConcatDataset(datasets)
-    #dataset = Unity_dataset
-    
-    seed = 123
-    test_percent = 0.001
-    n_test = int(len(dataset) * test_percent)
-    n_train = len(dataset) - n_test
-
-    train_set, test_set = torch.utils.data.random_split(dataset, [n_train, n_test], generator=torch.Generator().manual_seed(seed))
-    batch_size = 2
-
-    loader_args = dict(batch_size=batch_size, num_workers=4, pin_memory=True)   # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
-    source_train_loader = DataLoader(train_set, shuffle=True, **loader_args)
-    #source_val_loader = DataLoader(test_set, shuffle=True, drop_last=True, **loader_args)
-
-    
-    Target_dataset = UnMaskedDataset(TARGET_DATA_DIR)
-    
-    target_test_percent = 0.01
-    n_test_target = int(len(Target_dataset) * target_test_percent)
-    n_train_target = len(Target_dataset) - n_test_target
-    target_train_set, target_test_set = torch.utils.data.random_split(Target_dataset, [n_train_target, n_test_target], generator=torch.Generator().manual_seed(seed))
-    
-    target_train_loader = DataLoader(target_train_set, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True, drop_last=True)
-    
     # Model saving location
     Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
     model_number = 1
@@ -195,14 +175,10 @@ if __name__ == '__main__':
         save_dir = os.path.join(dir_checkpoint, f'CycleGan_{model_number}_{datetime.now().date()}')
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
-    #Losses
-    criterion_GAN = nn.MSELoss()
-    criterion_cycle = nn.L1Loss()
-    criterion_identity = nn.L1Loss()
-
-    # lists ;___;
-    name = "LC_and_synthetic_data"
+    # Lists to save the losses
+    '''
     img_list = []
+    '''
     G_losses = []
     D_A_losses = []
     D_B_losses = []
@@ -215,7 +191,7 @@ if __name__ == '__main__':
     ID_A2B = []
     disc_A = []
     disc_B = [] 
-    
+
     '''
     FDL_A2B_t = []
     FDL_B2A_t = []
@@ -226,40 +202,37 @@ if __name__ == '__main__':
     disc_A_t = []
     disc_B_t = []
     '''
-    # A = target
-    # B = source
-    # I.E. G_A2B = Generator from target to source
 
-    G_A2B = Generator()
-    G_B2A = Generator()
-    D_A = Discriminator() 
-    D_B = Discriminator()
-    
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    G_A2B.to(device)
-    G_B2A.to(device) 
-    D_A.to(device)  
-    D_B.to(device) 
-    epochs = 10
+    G_A2B, G_B2A, D_A, D_B = models
+    source_train_loader, target_train_loader = datasets
+
+    # Set up losses and optimisers
     criterion = nn.L1Loss()
+    '''
+    criterion_GAN = nn.MSELoss()
+    criterion_cycle = nn.L1Loss()
+    criterion_identity = nn.L1Loss()
+    '''
 
-    optimizer_D_A = torch.optim.Adam(D_A.parameters(),lr=0.0002, betas=(0.5, 0.999))
-    optimizer_D_B = torch.optim.Adam(D_B.parameters(),lr=0.0002, betas=(0.5, 0.999))
-    optimizer_G_A2B = torch.optim.Adam(G_A2B.parameters(),lr=0.0002, betas=(0.5, 0.999))
-    optimizer_G_B2A = torch.optim.Adam(G_B2A.parameters(),lr=0.0002, betas=(0.5, 0.999))
+    # Set up optimisers
+    optimizer_D_A = torch.optim.Adam(D_A.parameters(), lr=learning_rate, betas=betas)
+    optimizer_D_B = torch.optim.Adam(D_B.parameters(), lr=learning_rate, betas=betas)
+    optimizer_G_A2B = torch.optim.Adam(G_A2B.parameters(), lr=learning_rate, betas=betas)
+    optimizer_G_B2A = torch.optim.Adam(G_B2A.parameters(), lr=learning_rate, betas=betas)
 
     print("Starting Training Loop...")
 
+    # Actual training loop
     for epoch in range(epochs):
         iters = 0
         for i, (data_source, data_target) in enumerate(zip(source_train_loader, tqdm(target_train_loader)), 0):
 
-            #set model input
+            # Set model input
             a_real = data_source[0].to(device)
             b_real = data_target[0].unsqueeze(0).to(device)
 
-            tensor_ones=torch.ones([a_real.shape[0],1,14,14]).cuda()
-            tensor_zeros=torch.zeros([a_real.shape[0],1,14,14]).cuda()
+            tensor_ones = torch.ones([a_real.shape[0],1,14,14]).cuda()
+            tensor_zeros = torch.zeros([a_real.shape[0],1,14,14]).cuda()
 
             # Generate images
             b_fake = G_A2B(a_real)
@@ -279,7 +252,6 @@ if __name__ == '__main__':
                 Disc_loss_A = LSGAN_D(D_A(a_real), D_A(a_fake.detach()))
                 D_A_losses.append(Disc_loss_A.item())
             '''
-            #hmm
             Disc_loss_A = LSGAN_D(D_A(a_real), D_A(a_fake.detach()))
             D_A_losses.append(Disc_loss_A.item())
 
@@ -303,7 +275,7 @@ if __name__ == '__main__':
             Disc_loss_B.backward()
             optimizer_D_B.step()
 
-            #Generator
+            # Generator
             optimizer_G_A2B.zero_grad()
             optimizer_G_B2A.zero_grad()                                          
 
@@ -311,7 +283,7 @@ if __name__ == '__main__':
             Fool_disc_loss_A2B = LSGAN_G(D_B(b_fake))
             Fool_disc_loss_B2A = LSGAN_G(D_A(a_fake))
 
-             # Cycle Consistency    both use the two generators
+            # Cycle Consistency, both use the two generators
             Cycle_loss_A = criterion(a_rec, a_real)*5
             Cycle_loss_B = criterion(b_rec, b_real)*5
 
@@ -319,7 +291,7 @@ if __name__ == '__main__':
             Id_loss_B2A = criterion(G_B2A(a_real), a_real)*10
             Id_loss_A2B = criterion(G_A2B(b_real), b_real)*10
 
-            # generator losses
+            # Generator losses
             Loss_G = Fool_disc_loss_A2B+Fool_disc_loss_B2A+Cycle_loss_A+Cycle_loss_B+Id_loss_B2A+Id_loss_A2B
             G_losses.append(Loss_G)
 
@@ -373,6 +345,7 @@ if __name__ == '__main__':
         disc_A_t.append(sum(disc_A)/len(disc_A))
         disc_B_t.append(sum(disc_B)/len(disc_B))
         '''
+
         FDL_A2B = []
         FDL_B2A = []
         CL_A = []
@@ -381,9 +354,68 @@ if __name__ == '__main__':
         ID_A2B = []
         disc_B = []
         disc_A = []
-             
-        torch.save(G_A2B, str(os.path.join(save_dir, name+ "_G_A2B.pt")))
-        torch.save(G_B2A, str(os.path.join(save_dir,name+"_G_B2A.pt")))
-        torch.save(D_A, str(os.path.join(save_dir,name+"_D_A.pt")))
-        torch.save(D_B, str(os.path.join(save_dir,name+"_D_B.pt")))
 
+        # Save models
+        torch.save(G_A2B, str(os.path.join(save_dir, model_name + "_G_A2B.pt")))
+        torch.save(G_B2A, str(os.path.join(save_dir, model_name +"_G_B2A.pt")))
+        torch.save(D_A, str(os.path.join(save_dir, model_name +"_D_A.pt")))
+        torch.save(D_B, str(os.path.join(save_dir, model_name +"_D_B.pt")))
+
+
+if __name__ == '__main__':
+
+    # Create data loaders
+    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False)
+    Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
+    datasets = [LC_dataset, Unity_dataset]
+    dataset = torch.utils.data.ConcatDataset(datasets)
+    # dataset = Unity_dataset
+
+    seed = 123
+    test_percent = 0.001
+    n_test = int(len(dataset) * test_percent)
+    n_train = len(dataset) - n_test
+
+    train_set, test_set = torch.utils.data.random_split(dataset, [n_train, n_test], generator=torch.Generator().manual_seed(seed))
+    batch_size = 2
+
+    loader_args = dict(batch_size=batch_size, num_workers=4,
+                       pin_memory=True)  # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
+    source_train_loader = DataLoader(train_set, shuffle=True, **loader_args)
+    # source_val_loader = DataLoader(test_set, shuffle=True, drop_last=True, **loader_args)
+
+    Target_dataset = UnMaskedDataset(TARGET_DATA_DIR)
+
+    target_test_percent = 0.01
+    n_test_target = int(len(Target_dataset) * target_test_percent)
+    n_train_target = len(Target_dataset) - n_test_target
+    target_train_set, target_test_set = torch.utils.data.random_split(Target_dataset, [n_train_target, n_test_target],
+                                                                      generator=torch.Generator().manual_seed(seed))
+
+    target_train_loader = DataLoader(target_train_set, shuffle=True, batch_size=batch_size, num_workers=4,
+                                     pin_memory=True, drop_last=True)
+
+    # Create generators and discriminators
+    # A = target
+    # B = source
+    # i.e. G_A2B = Generator from target to source
+    G_A2B = Generator()
+    G_B2A = Generator()
+    D_A = Discriminator()
+    D_B = Discriminator()
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    G_A2B.to(device)
+    G_B2A.to(device)
+    D_A.to(device)
+    D_B.to(device)
+
+    models = (G_A2B, G_B2A, D_A, D_B)
+    datasets = (source_train_loader, target_train_loader)
+
+    train_loop(models=models,
+               datasets=datasets,
+               device=device,
+               model_name="LC+CycleGAN",
+               epochs=10,
+               batch_size=2)
