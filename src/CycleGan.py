@@ -160,11 +160,10 @@ def train_loop(models,
                datasets,
                device,
                model_name,
-               epochs: int = 5,
-               batch_size: int = 1,
-               learning_rate: float = 0.0002,
-               betas = (0.5, 0.999)
-               ):
+               epochs=5,
+               batch_size=2,
+               learning_rate=0.0002,
+               betas=(0.5, 0.999)):
 
     # Model saving location
     Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
@@ -225,11 +224,11 @@ def train_loop(models,
     # Actual training loop
     for epoch in range(epochs):
         iters = 0
-        for i, (data_source, data_target) in enumerate(zip(source_train_loader, tqdm(target_train_loader)), 0):
-
+        for i, (data_source, data_target) in enumerate(zip(tqdm(source_train_loader), target_train_loader), 0):
+            
             # Set model input
             a_real = data_source[0].to(device)
-            b_real = data_target[0].unsqueeze(0).to(device)
+            b_real = data_target.to(device)
 
             tensor_ones = torch.ones([a_real.shape[0],1,14,14]).cuda()
             tensor_zeros = torch.zeros([a_real.shape[0],1,14,14]).cuda()
@@ -239,7 +238,8 @@ def train_loop(models,
             a_rec = G_B2A(b_fake)
             a_fake = G_B2A(b_real)
             b_rec = G_A2B(a_fake)
-
+            
+            
             # Discriminator A
             optimizer_D_A.zero_grad()
             if (iters > 0 or epoch > 0) and iters % 3 == 0:
@@ -311,11 +311,11 @@ def train_loop(models,
             if iters == 0 and epoch == 0:
                 old_b_fake = b_fake.clone()
                 old_a_fake = a_fake.clone()
-            elif old_b_fake.shape[0] == batch_size*batch_size and b_fake.shape[0] == batch_size:
+            elif old_b_fake.shape[0] == 5*batch_size and b_fake.shape[0] == batch_size:
                 rand_int = random.randint(batch_size, batch_size*batch_size-1)
                 old_b_fake[rand_int-batch_size:rand_int] = b_fake.clone()
                 old_a_fake[rand_int-batch_size:rand_int] = a_fake.clone()
-            elif old_b_fake.shape[0] < batch_size*batch_size:
+            elif old_b_fake.shape[0] < 5*batch_size:
                 old_b_fake = torch.cat((b_fake.clone(), old_b_fake))
                 old_a_fake = torch.cat((a_fake.clone(), old_a_fake))
 
@@ -362,23 +362,26 @@ def train_loop(models,
 if __name__ == '__main__':
 
     # Create data loaders
-    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False)
+    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=10, in_memory=False)
+    '''
     Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
     datasets = [LC_dataset, Unity_dataset]
     dataset = torch.utils.data.ConcatDataset(datasets)
-    # dataset = Unity_dataset
-
+    '''
+    train_set = LC_dataset
+    
     seed = 123
+    '''
     test_percent = 0.001
     n_test = int(len(dataset) * test_percent)
     n_train = len(dataset) - n_test
 
     train_set, test_set = torch.utils.data.random_split(dataset, [n_train, n_test], generator=torch.Generator().manual_seed(seed))
+    '''
     batch_size = 2
 
-    loader_args = dict(batch_size=batch_size, num_workers=4,
-                       pin_memory=True)  # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
-    source_train_loader = DataLoader(train_set, shuffle=True, **loader_args)
+     
+    source_train_loader = DataLoader(train_set, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True) # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
     # source_val_loader = DataLoader(test_set, shuffle=True, drop_last=True, **loader_args)
 
     Target_dataset = UnMaskedDataset(TARGET_DATA_DIR)
@@ -390,7 +393,7 @@ if __name__ == '__main__':
                                                                       generator=torch.Generator().manual_seed(seed))
 
     target_train_loader = DataLoader(target_train_set, shuffle=True, batch_size=batch_size, num_workers=4,
-                                     pin_memory=True, drop_last=True)
+                                     pin_memory=True)
 
     # Create generators and discriminators
     # A = target
@@ -413,6 +416,6 @@ if __name__ == '__main__':
     train_loop(models=models,
                datasets=datasets,
                device=device,
-               model_name="LC+CycleGAN",
+               model_name="test",
                epochs=10,
                batch_size=2)
