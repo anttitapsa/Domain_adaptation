@@ -19,7 +19,7 @@ def add_noise_to_images(image, amount):
     return noise_image
 
 def resize_image_(image, size):
-    resize = Trolli.Resize(size)
+    resize = transforms.Resize(size)
     return resize.forward(image)
 
 def to_same_size(image, target_image):
