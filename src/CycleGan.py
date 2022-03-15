@@ -242,57 +242,54 @@ def train_loop(models,
 
             # Discriminator A
             optimizer_D_A.zero_grad()
-            '''
-            if((iters > 0 or epoch > 0) and iters % 3 == 0):
-                rand_int = random.randint(5, old_a_fake.shape[0]-1)
-                Disc_loss_A = LSGAN_D(D_A(a_real), D_A(old_a_fake[rand_int-5:rand_int].detach()))
+            if (iters > 0 or epoch > 0) and iters % 3 == 0:
+                # Calculate discriminator loss with current A + randomly chosen saved B-->A domain images
+                # Dimensions must match
+                rand_int = random.randint(batch_size, old_a_fake.shape[0]-1)
+                Disc_loss_A = LSGAN_D(D_A(a_real), D_A(old_a_fake[rand_int-batch_size:rand_int].detach()))
                 D_A_losses.append(Disc_loss_A.item())
-
             else:
                 Disc_loss_A = LSGAN_D(D_A(a_real), D_A(a_fake.detach()))
                 D_A_losses.append(Disc_loss_A.item())
-            '''
-            Disc_loss_A = LSGAN_D(D_A(a_real), D_A(a_fake.detach()))
-            D_A_losses.append(Disc_loss_A.item())
 
             Disc_loss_A.backward()
             optimizer_D_A.step()
 
             # Discriminator B
             optimizer_D_B.zero_grad()
-            '''
-            if((iters > 0 or epoch > 0) and iters % 3 == 0):
-                rand_int = random.randint(5, old_b_fake.shape[0]-1)
-                Disc_loss_B =  LSGAN_D(D_B(b_real), D_B(old_b_fake[rand_int-5:rand_int].detach()))
+            if (iters > 0 or epoch > 0) and iters % 3 == 0:
+                # Calculate discriminator loss with current B + randomly chosen saved A-->B domain images
+                # Dimensions must match
+                rand_int = random.randint(batch_size, old_b_fake.shape[0]-1)
+                Disc_loss_B =  LSGAN_D(D_B(b_real), D_B(old_b_fake[rand_int-batch_size:rand_int].detach()))
                 D_B_losses.append(Disc_loss_B.item())
             else:
                 Disc_loss_B =  LSGAN_D(D_B(b_real), D_B(b_fake.detach()))
                 D_B_losses.append(Disc_loss_B.item())
-            '''
-            Disc_loss_B =  LSGAN_D(D_B(b_real), D_B(b_fake.detach()))
-            D_B_losses.append(Disc_loss_B.item())
 
             Disc_loss_B.backward()
             optimizer_D_B.step()
 
             # Generator
             optimizer_G_A2B.zero_grad()
-            optimizer_G_B2A.zero_grad()                                          
+            optimizer_G_B2A.zero_grad()
 
             # Fool discriminator
             Fool_disc_loss_A2B = LSGAN_G(D_B(b_fake))
             Fool_disc_loss_B2A = LSGAN_G(D_A(a_fake))
 
             # Cycle Consistency, both use the two generators
-            Cycle_loss_A = criterion(a_rec, a_real)*5
-            Cycle_loss_B = criterion(b_rec, b_real)*5
+            # Criterion is L1 loss so we multiply by batch_size
+            Cycle_loss_A = criterion(a_rec, a_real) * batch_size
+            Cycle_loss_B = criterion(b_rec, b_real) * batch_size
 
             # Identity loss
-            Id_loss_B2A = criterion(G_B2A(a_real), a_real)*10
-            Id_loss_A2B = criterion(G_A2B(b_real), b_real)*10
+            # For some reason multiplied by 2 * batch_size
+            Id_loss_B2A = criterion(G_B2A(a_real), a_real) * batch_size * 2
+            Id_loss_A2B = criterion(G_A2B(b_real), b_real) * batch_size * 2
 
             # Generator losses
-            Loss_G = Fool_disc_loss_A2B+Fool_disc_loss_B2A+Cycle_loss_A+Cycle_loss_B+Id_loss_B2A+Id_loss_A2B
+            Loss_G = Fool_disc_loss_A2B + Fool_disc_loss_B2A + Cycle_loss_A + Cycle_loss_B + Id_loss_B2A + Id_loss_A2B
             G_losses.append(Loss_G)
 
             # Backward propagation
@@ -310,18 +307,18 @@ def train_loop(models,
             ID_A2B.append(Id_loss_A2B)
             disc_A.append(Disc_loss_A)
             disc_B.append(Disc_loss_B)
-            '''
-            if(iters == 0 and epoch == 0):
+
+            if iters == 0 and epoch == 0:
                 old_b_fake = b_fake.clone()
                 old_a_fake = a_fake.clone()
-            elif (old_b_fake.shape[0] == batch_size*5 and b_fake.shape[0]==batch_size):
-                rand_int = random.randint(5, batch_size*5-1)
-                old_b_fake[rand_int-5:rand_int] = b_fake.clone()
-                old_a_fake[rand_int-5:rand_int] = a_fake.clone()
-            elif(old_b_fake.shape[0]< 25):
-                old_b_fake = torch.cat((b_fake.clone(),old_b_fake))
-                old_a_fake = torch.cat((a_fake.clone(),old_a_fake))
-            '''
+            elif old_b_fake.shape[0] == batch_size*batch_size and b_fake.shape[0] == batch_size:
+                rand_int = random.randint(batch_size, batch_size*batch_size-1)
+                old_b_fake[rand_int-batch_size:rand_int] = b_fake.clone()
+                old_a_fake[rand_int-batch_size:rand_int] = a_fake.clone()
+            elif old_b_fake.shape[0] < batch_size*batch_size:
+                old_b_fake = torch.cat((b_fake.clone(), old_b_fake))
+                old_a_fake = torch.cat((a_fake.clone(), old_a_fake))
+
             iters += 1
             del data_source, data_target, a_real, b_real, a_fake, b_fake
             '''
