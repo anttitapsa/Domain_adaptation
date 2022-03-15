@@ -30,3 +30,9 @@ def add_noise_to_images(noise_type, image):
     transformed_image = [vflipper(noise_image) for _ in range(4)]'''
     return noise_image
 
+def resize_image_(image, size):
+    resize = Trolli.Resize(size)
+    return resize.forward(image)
+
+def to_same_size(image, target_image):
+    return resize_image_(image, (target_image.shape[0], target_image.shape[1]))
