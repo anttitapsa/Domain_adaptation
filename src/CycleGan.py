@@ -146,16 +146,6 @@ def LSGAN_D(real, fake):
 def LSGAN_G(fake):
     return torch.mean((fake - 1)**2)
 
-
-DATA_DIR = os.path.join(os.getcwd(), "data")
-TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
-LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
-LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
-UNITY_IMG_DIR = os.path.join(DATA_DIR, "unity_data", "images")
-UNITY_MASK_DIR = os.path.join(DATA_DIR, "unity_data", "masks")
-dir_checkpoint = os.path.join(os.getcwd(), "model" )
-
-
 def train_loop(models,
                datasets,
                device,
@@ -205,13 +195,8 @@ def train_loop(models,
     G_A2B, G_B2A, D_A, D_B = models
     source_train_loader, target_train_loader = datasets
 
-    # Set up losses and optimisers
+    # Set up loss
     criterion = nn.L1Loss()
-    '''
-    criterion_GAN = nn.MSELoss()
-    criterion_cycle = nn.L1Loss()
-    criterion_identity = nn.L1Loss()
-    '''
 
     # Set up optimisers
     optimizer_D_A = torch.optim.Adam(D_A.parameters(), lr=learning_rate, betas=betas)
@@ -229,9 +214,6 @@ def train_loop(models,
             # Set model input
             a_real = data_source[0].to(device)
             b_real = data_target.to(device)
-
-            tensor_ones = torch.ones([a_real.shape[0],1,14,14]).cuda()
-            tensor_zeros = torch.zeros([a_real.shape[0],1,14,14]).cuda()
 
             # Generate images
             b_fake = G_A2B(a_real)
@@ -320,14 +302,6 @@ def train_loop(models,
                 old_a_fake = torch.cat((a_fake.clone(), old_a_fake))
 
             iters += 1
-            del data_source, data_target, a_real, b_real, a_fake, b_fake
-            '''
-            if iters % 50 == 0:
-      
-                print('[%d/%d]\tFDL_A2B: %.4f\tFDL_B2A: %.4f\tCL_A: %.4f\tCL_B: %.4f\tID_B2A: %.4f\tID_A2B: %.4f\tLoss_D_A: %.4f\tLoss_D_A: %.4f'
-                      % (epoch+1, epochs, Fool_disc_loss_A2B, Fool_disc_loss_B2A,Cycle_loss_A,Cycle_loss_B,Id_loss_B2A,
-                          Id_loss_A2B, Disc_loss_A.item(), Disc_loss_B.item()), end="\r")
-            '''
         
         print('[%d/%d]\tFDL_A2B: %.4f\tFDL_B2A: %.4f\tCL_A: %.4f\tCL_B: %.4f\tID_B2A: %.4f\tID_A2B: %.4f\tLoss_D_A: %.4f\tLoss_D_A: %.4f'
                       % (epoch+1, epochs, Fool_disc_loss_A2B, Fool_disc_loss_B2A,Cycle_loss_A,Cycle_loss_B,Id_loss_B2A,
@@ -360,23 +334,29 @@ def train_loop(models,
 
 
 if __name__ == '__main__':
+    DATA_DIR = os.path.join(os.getcwd(), "data")
+    TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
+    LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
+    LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
+    UNITY_IMG_DIR = os.path.join(DATA_DIR, "unity_data", "images")
+    UNITY_MASK_DIR = os.path.join(DATA_DIR, "unity_data", "masks")
+    dir_checkpoint = os.path.join(os.getcwd(), "model" )
 
     # Create data loaders
-    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=20, in_memory=False)
-    Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=20, in_memory=False)
+    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False)
+    Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
     datasets = [LC_dataset, Unity_dataset]
     dataset = torch.utils.data.ConcatDataset(datasets)
    
     train_set = dataset
     
     seed = 123
-    '''
     test_percent = 0.001
     n_test = int(len(dataset) * test_percent)
     n_train = len(dataset) - n_test
 
     train_set, test_set = torch.utils.data.random_split(dataset, [n_train, n_test], generator=torch.Generator().manual_seed(seed))
-    '''
+
     batch_size = 2
 
      
