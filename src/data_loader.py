@@ -50,12 +50,17 @@ class UnMaskedDataset(Dataset):
                 f"Couldn't read image {img_path}. Make sure your data is located in {self.img_dir}!")
         
         image = transforms.ToTensor()(image)
+        resize = transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=Image.NEAREST)
+        '''
         i, j, h, w = transforms.RandomCrop.get_params(
             image,
             output_size=(IMG_SIZE, IMG_SIZE))
         image = transforms.functional.crop(image, i, j, h, w)
+        
         return image
-        #return transforms.Resize((IMG_SIZE, IMG_SIZE), image)
+        '''
+        return resize.forward(image)
+    
 
     def __len__(self):
         # return len(dataset)
