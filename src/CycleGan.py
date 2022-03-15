@@ -362,13 +362,12 @@ def train_loop(models,
 if __name__ == '__main__':
 
     # Create data loaders
-    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=10, in_memory=False)
-    '''
-    Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
+    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=20, in_memory=False)
+    Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=20, in_memory=False)
     datasets = [LC_dataset, Unity_dataset]
     dataset = torch.utils.data.ConcatDataset(datasets)
-    '''
-    train_set = LC_dataset
+   
+    train_set = dataset
     
     seed = 123
     '''
@@ -384,7 +383,7 @@ if __name__ == '__main__':
     source_train_loader = DataLoader(train_set, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True) # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
     # source_val_loader = DataLoader(test_set, shuffle=True, drop_last=True, **loader_args)
 
-    Target_dataset = UnMaskedDataset(TARGET_DATA_DIR)
+    Target_dataset = UnMaskedDataset(TARGET_DATA_DIR, mode=2)
 
     target_test_percent = 0.01
     n_test_target = int(len(Target_dataset) * target_test_percent)
@@ -416,6 +415,6 @@ if __name__ == '__main__':
     train_loop(models=models,
                datasets=datasets,
                device=device,
-               model_name="test",
+               model_name="test_resize",
                epochs=10,
                batch_size=2)
