@@ -159,10 +159,10 @@ if __name__ == '__main__':
     dir_checkpoint = os.path.join(os.getcwd(), "model" )
 
     LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False)
-    #Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=10, in_memory=False)
-    #datasets = [LC_dataset, Unity_dataset]
-    #dataset = torch.utils.data.ConcatDataset(datasets)
-    dataset = LC_dataset
+    Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
+    datasets = [LC_dataset, Unity_dataset]
+    dataset = torch.utils.data.ConcatDataset(datasets)
+    #dataset = Unity_dataset
     
     seed = 123
     test_percent = 0.001
@@ -192,7 +192,7 @@ if __name__ == '__main__':
     save_dir = os.path.join(dir_checkpoint, f'CycleGan_{datetime.now().date()}')
     while os.path.exists(save_dir) == True:
         model_number += 1
-        save_dir = os.path.join(dir_checkpoint, f'model_{model_number}_{datetime.now().date()}')
+        save_dir = os.path.join(dir_checkpoint, f'CycleGan_{model_number}_{datetime.now().date()}')
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
     #Losses
@@ -201,7 +201,7 @@ if __name__ == '__main__':
     criterion_identity = nn.L1Loss()
 
     # lists ;___;
-    name = "nice_try"
+    name = "LC_and_synthetic_data"
     img_list = []
     G_losses = []
     D_A_losses = []
@@ -252,7 +252,7 @@ if __name__ == '__main__':
 
     for epoch in range(epochs):
         iters = 0
-        for i, (data_source, data_target) in enumerate(zip(tqdm(source_train_loader), target_train_loader), 0):
+        for i, (data_source, data_target) in enumerate(zip(source_train_loader, tqdm(target_train_loader)), 0):
 
             #set model input
             a_real = data_source[0].to(device)
@@ -352,13 +352,17 @@ if __name__ == '__main__':
             '''
             iters += 1
             del data_source, data_target, a_real, b_real, a_fake, b_fake
-
+            '''
             if iters % 50 == 0:
       
                 print('[%d/%d]\tFDL_A2B: %.4f\tFDL_B2A: %.4f\tCL_A: %.4f\tCL_B: %.4f\tID_B2A: %.4f\tID_A2B: %.4f\tLoss_D_A: %.4f\tLoss_D_A: %.4f'
                       % (epoch+1, epochs, Fool_disc_loss_A2B, Fool_disc_loss_B2A,Cycle_loss_A,Cycle_loss_B,Id_loss_B2A,
-                          Id_loss_A2B, Disc_loss_A.item(), Disc_loss_B.item()))
+                          Id_loss_A2B, Disc_loss_A.item(), Disc_loss_B.item()), end="\r")
+            '''
         
+        print('[%d/%d]\tFDL_A2B: %.4f\tFDL_B2A: %.4f\tCL_A: %.4f\tCL_B: %.4f\tID_B2A: %.4f\tID_A2B: %.4f\tLoss_D_A: %.4f\tLoss_D_A: %.4f'
+                      % (epoch+1, epochs, Fool_disc_loss_A2B, Fool_disc_loss_B2A,Cycle_loss_A,Cycle_loss_B,Id_loss_B2A,
+                          Id_loss_A2B, Disc_loss_A.item(), Disc_loss_B.item()))
         '''
         FDL_A2B_t.append(sum(FDL_A2B)/len(FDL_A2B))
         FDL_B2A_t.append(sum(FDL_B2A)/len(FDL_B2A))
@@ -378,8 +382,8 @@ if __name__ == '__main__':
         disc_B = []
         disc_A = []
              
-        torch.save(G_A2B, str(os.path.join(save_dir, "_G_A2B.pt")))
-        torch.save(G_B2A, str(os.path.join(save_dir,"_G_B2A.pt")))
-        torch.save(D_A, str(os.path.join(save_dir,"_D_A.pt")))
-        torch.save(D_B, str(os.path.join(save_dir,"_D_B.pt")))
+        torch.save(G_A2B, str(os.path.join(save_dir, name+ "_G_A2B.pt")))
+        torch.save(G_B2A, str(os.path.join(save_dir,name+"_G_B2A.pt")))
+        torch.save(D_A, str(os.path.join(save_dir,name+"_D_A.pt")))
+        torch.save(D_B, str(os.path.join(save_dir,name+"_D_B.pt")))
 
