@@ -30,23 +30,41 @@ class UnMaskedDataset(Dataset):
     A dataset without masks.
     img_dir: the directory containing images.
     """
-    def __init__(self, img_dir):
+    def __init__(self, img_dir, mode=1):
         # data loading
+        # mode: 1 --> RandomCrop when using __getitem__
+        #       2 --> Resized using IMAGE_SIZE when using __getitem__
+        if not os.path.isdir(img_dir):
+            raise DataLoaderException(f"The first argument 'img_dir' is not a directory, it is {img_dir}")
+        if type(mode) != int:
+            raise DataLoaderException(f"The mode can be only int and it can be 1 or 2, it is {mode}")
+        elif mode < 1 or mode > 2:
+            raise DataLoaderException(f"The mode can be only int and it can be 1 or 2, it is {mode}")
         self.img_dir = img_dir
+        self.mode = mode
+
 
     def __getitem__(self, idx):
         # return item with possible transforms
         img_path = os.path.join(self.img_dir, os.listdir(self.img_dir)[idx])
         # Image is changed grayscale
-        image = Image.open(img_path).convert('L') 
+        try:
+            image = Image.open(img_path).convert('L')
+        except FileNotFoundError:
+            raise DataLoaderException(
+                f"Couldn't read image {img_path}. Make sure your data is located in {self.img_dir}!")
         
         image = transforms.ToTensor()(image)
-        i, j, h, w = transforms.RandomCrop.get_params(
-            image,
-            output_size=(IMG_SIZE, IMG_SIZE))
-        image = transforms.functional.crop(image, i, j, h, w)
-        return image
-        #return transforms.Resize((IMG_SIZE, IMG_SIZE), image)
+        if self.mode == 1:
+            i, j, h, w = transforms.RandomCrop.get_params(
+                image,
+                output_size=(IMG_SIZE, IMG_SIZE))
+            image = transforms.functional.crop(image, i, j, h, w)
+            return image
+        elif self.mode == 2:
+            resize = transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=Image.NEAREST)
+            return resize.forward(image)
+    
 
     def __len__(self):
         # return len(dataset)
