@@ -10,6 +10,7 @@ import os
 from tqdm import tqdm 
 import data_loader
 from model import Unet
+from functions import dice_loss
 
 def train_loop(net,
                datasets,
@@ -38,28 +39,29 @@ def train_loop(net,
     optim_source = torch.optim.RMSprop(net.parameters(), lr=learning_rate, weight_decay=1e-8, momentum=0.9)
     optim_target = torch.optim.Adam(net.parameters(), lr=learning_rate)
 
+    grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)  # Tries to choose best datatype for operations (torch.float16 for convolutions and float32 for reductions)
+
     print("Starting Training Loop...")
 
     # Actual training loop
     for epoch in range(epochs):
         iters = 0
-        for i, (data_source, data_target) in enumerate(zip(tqdm(source_train_loader), target_train_loader), 0):
+        for i, (data_source, data_target) in tqdm(enumerate(zip(source_train_loader, target_train_loader))):
             
             # Prepare data
             source_im = data_source[0].to(device)
             source_mask = data_source[1].to(device)
             
             target_im = data_target[0].to(device)
-            mix_data = source_im.cat(target_im)
-            true_domain_labels = data_source[2].cat(data_target[2])
-            
+            mix_data = torch.cat((source_im, target_im), 0)
+            true_domain_labels = torch.cat((data_source[2], data_target[1]), 0)
             # Teach with source encoder + decoder
             with torch.cuda.amp.autocast(enabled=amp):
                 masks_pred, domain_label = net(source_im)
-                semantic_loss = dice_loss(F.softmax(masks_pred, dim=1).float(),
-                                   F.one_hot(source_mask, 2).permute(0, 3, 1, 2).float(),
-                                   multiclass=True)     # Loss function Dice loss
-                
+                semantic_loss = dice_loss(
+                    F.softmax(masks_pred, dim=1).float(),
+                    F.one_hot(source_mask.to(torch.int64), 2).permute(0, 3, 1, 2).float(),
+                    multiclass=True)     # Loss function Dice loss
             # Optimisation step
             optim_source.zero_grad(set_to_none=True)
             grad_scaler.scale(semantic_loss).backward()
@@ -99,12 +101,12 @@ if __name__ == '__main__':
     source_train_loader = DataLoader(train_set, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True) # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
     # source_val_loader = DataLoader(test_set, shuffle=True, drop_last=True, **loader_args)
 
-    Target_dataset = data_loader.UnMaskedDataset(data_loader.TARGET_DATA_DIR, mode=1)
+    target_dataset = data_loader.UnMaskedDataset(data_loader.TARGET_DATA_DIR, mode=1, return_domain_identifier=True)
 
     target_test_percent = 0.01
-    n_test_target = int(len(Target_dataset) * target_test_percent)
-    n_train_target = len(Target_dataset) - n_test_target
-    target_train_set, target_test_set = torch.utils.data.random_split(Target_dataset, [n_train_target, n_test_target],
+    n_test_target = int(len(target_dataset) * target_test_percent)
+    n_train_target = len(target_dataset) - n_test_target
+    target_train_set, target_test_set = torch.utils.data.random_split(target_dataset, [n_train_target, n_test_target],
                                                                       generator=torch.Generator().manual_seed(seed))
 
     target_train_loader = DataLoader(target_train_set, shuffle=True, batch_size=batch_size, num_workers=4,

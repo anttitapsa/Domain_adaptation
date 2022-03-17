@@ -56,7 +56,7 @@ class UnMaskedDataset(Dataset):
             # The directories are structured for example ".../livecell/images"
             # We want to extract "livecell" out of the path, as done below.
             # Domain map will then convert these into numeric, predictable classes
-            self.domain_identifier = DOMAIN_MAP[os.path.basename(os.path.split(self.img_dir)[0])]
+            self.domain_identifier = DOMAIN_MAP[os.path.basename(self.img_dir)]
 
     def __getitem__(self, idx):
         # return item with possible transforms
@@ -74,12 +74,13 @@ class UnMaskedDataset(Dataset):
                 image,
                 output_size=(IMG_SIZE, IMG_SIZE))
             image = transforms.functional.crop(image, i, j, h, w)
-            if self.return_domain_identifier: return image, None, self.domain_identifier
-            else: return image, None  # No mask --> None
+            if self.return_domain_identifier:
+                return image, self.domain_identifier
+            else: return image  # No mask --> None
         elif self.mode == 2:
             resize = transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=Image.NEAREST)
-            if self.return_domain_identifier: return image, None, self.domain_identifier
-            else: return image, None  # No mask --> None
+            if self.return_domain_identifier: return image, self.domain_identifier
+            else: return image  # No mask --> None
     
 
     def __len__(self):

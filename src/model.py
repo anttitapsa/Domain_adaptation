@@ -21,7 +21,7 @@ class Unet(Module):
     def __init__(self, numChannels = 1, classes = 2, dropout = 0.1):
         super(Unet, self).__init__()
         
-        self.domain_classifier = domain_classifier(in_channel=1024)
+        self.domain_classifier = domain_classifier(in_channel=32)
         
         # Encoder (traditional convolutional and max pooling layers)
         self.conv1 = Unet._conv2d_block(in_channel = numChannels, out_channel = 64)
