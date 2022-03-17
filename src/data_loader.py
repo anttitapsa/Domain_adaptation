@@ -22,7 +22,7 @@ IMG_SIZE = 512
 DOMAIN_MAP = {
     "livecell": 0,
     "target": 1,
-    "unity_data": 2
+    "unity_data": 0
 }
 
 
@@ -35,7 +35,7 @@ class UnMaskedDataset(Dataset):
     A dataset without masks.
     img_dir: the directory containing images.
     """
-    def __init__(self, img_dir, mode=1):
+    def __init__(self, img_dir, mode=1, return_domain_identifier=False):
         # data loading
         # mode: 1 --> RandomCrop when using __getitem__
         #       2 --> Resized using IMAGE_SIZE when using __getitem__
@@ -47,7 +47,13 @@ class UnMaskedDataset(Dataset):
             raise DataLoaderException(f"The mode can be only int and it can be 1 or 2, it is {mode}")
         self.img_dir = img_dir
         self.mode = mode
-
+        self.return_domain_identifier = return_domain_identifier
+        if return_domain_identifier:
+            # Directory basename will work as the identifier for domains.
+            # The directories are structured for example ".../livecell/images"
+            # We want to extract "livecell" out of the path, as done below.
+            # Domain map will then convert these into numeric, predictable classes
+            self.domain_identifier = DOMAIN_MAP[os.path.basename(os.path.split(self.img_dir)[0])]
 
     def __getitem__(self, idx):
         # return item with possible transforms
@@ -65,10 +71,12 @@ class UnMaskedDataset(Dataset):
                 image,
                 output_size=(IMG_SIZE, IMG_SIZE))
             image = transforms.functional.crop(image, i, j, h, w)
-            return image
+            if self.return_domain_identifier: return image, None, self.domain_identifier
+            else: return image, None  # No mask --> None
         elif self.mode == 2:
             resize = transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=Image.NEAREST)
-            return resize.forward(image)
+            if self.return_domain_identifier: return image, None, self.domain_identifier
+            else: return image, None  # No mask --> None
     
 
     def __len__(self):

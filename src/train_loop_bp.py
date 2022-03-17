@@ -155,6 +155,8 @@ if __name__ == '__main__':
     datasets = [LC_dataset, Unity_dataset]
     dataset = torch.utils.data.ConcatDataset(datasets)
     
+    
+    
     seed = 123
     test_percent = 0.001
     n_test = int(len(dataset) * test_percent)
