@@ -19,6 +19,11 @@ TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
 LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
 LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
 IMG_SIZE = 512
+DOMAIN_MAP = {
+    "livecell": 0,
+    "target": 1,
+    "unity_data": 2
+}
 
 
 class DataLoaderException(Exception):
@@ -76,7 +81,7 @@ class MaskedDataset(Dataset):
     img_dir: The directory containing ONLY images used foor this data set
     mask_dir: The directory containing ONLY masks of images in the same order as the images are found in img_dir
     """
-    def __init__(self, img_dir, mask_path, length=None, in_memory=False):
+    def __init__(self, img_dir, mask_path, length=None, in_memory=False, return_domain_identifier=False):
         if not os.path.isdir(img_dir):
             raise DataLoaderException(f"The first argument 'img_dir' is not a directory, it is {img_dir}")
         if not os.path.isdir(mask_path):
@@ -89,6 +94,14 @@ class MaskedDataset(Dataset):
         self.length = length
         self.in_memory = in_memory  # If true, read whole dataset into memory on initialization.
         iter_count = length if length else len(os.listdir(img_dir))
+        self.return_domain_identifier = return_domain_identifier
+        if return_domain_identifier:
+            # Directory basename will work as the identifier for domains.
+            # The directories are structured for example ".../livecell/images"
+            # We want to extract "livecell" out of the path, as done below.
+            # Domain map will then convert these into numeric, predictable classes
+            self.domain_identifier = DOMAIN_MAP[os.path.basename(os.path.split(self.img_dir)[0])]
+
         print("Reading data into memory...")
         for i in tqdm(range(iter_count)):
             mask_file = os.listdir(mask_path)[i]
@@ -147,7 +160,9 @@ class MaskedDataset(Dataset):
             output_size=(IMG_SIZE, IMG_SIZE))
         image = transforms.functional.crop(image, i, j, h, w)
         mask = transforms.functional.crop(mask, i, j, h, w)
-
+        
+        if self.return_domain_identifier:
+            return image, mask, self.domain_identifier
         return image, mask
         
     def __len__(self):
