@@ -4,6 +4,7 @@ from torch.nn import Module
 from torch.nn import MaxPool2d
 from torch.nn import BatchNorm2d
 from torch.nn import ReLU
+import torch.nn as nn
 from torch.nn import Dropout
 from torch import cat
 from torch.nn import ConvTranspose2d
@@ -131,7 +132,7 @@ class domain_classifier(nn.Module):
         x = self.fc2(x)
         return F.sigmoid(x)
       
-class GradReverse(Function):
+class GradReverse(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x):
         return x.view_as(x)

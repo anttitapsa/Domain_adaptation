@@ -18,6 +18,9 @@ DATA_DIR = os.path.join(os.getcwd(), "data")
 TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
 LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
 LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
+UNITY_IMG_DIR = os.path.join(DATA_DIR, "unity_data", "images")
+UNITY_MASK_DIR = os.path.join(DATA_DIR, "unity_data", "masks")
+dir_checkpoint = os.path.join(os.getcwd(), "model" )
 IMG_SIZE = 512
 DOMAIN_MAP = {
     "livecell": 0,
@@ -108,7 +111,7 @@ class MaskedDataset(Dataset):
             # The directories are structured for example ".../livecell/images"
             # We want to extract "livecell" out of the path, as done below.
             # Domain map will then convert these into numeric, predictable classes
-            self.domain_identifier = DOMAIN_MAP[os.path.basename(os.path.split(self.img_dir)[0])]
+            self.domain_identifier = DOMAIN_MAP[os.path.basename(os.path.split(img_dir)[0])]
 
         print("Reading data into memory...")
         for i in tqdm(range(iter_count)):

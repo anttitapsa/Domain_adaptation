@@ -8,12 +8,12 @@ from pathlib import Path
 import random
 import os
 from tqdm import tqdm 
-from data_loader import MaskedDataset, UnMaskedDataset
+import data_loader
+from model import Unet
 
 def train_loop(net,
                datasets,
                device,
-               model_name,
                epochs=5,
                batch_size=2,
                learning_rate=0.001,
@@ -35,8 +35,8 @@ def train_loop(net,
     criterion = nn.BCELoss()
 
     # Set up optimisers
-    optim_source = optim.RMSprop(net.parameters(), lr=learning_rate, weight_decay=1e-8, momentum=0.9)
-    optim_target = optim.Adam(net.parameters(), lr=learning_rate)
+    optim_source = torch.optim.RMSprop(net.parameters(), lr=learning_rate, weight_decay=1e-8, momentum=0.9)
+    optim_target = torch.optim.Adam(net.parameters(), lr=learning_rate)
 
     print("Starting Training Loop...")
 
@@ -77,17 +77,10 @@ def train_loop(net,
 
 
 if __name__ == '__main__':
-    DATA_DIR = os.path.join(os.getcwd(), "data")
-    TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
-    LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
-    LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
-    UNITY_IMG_DIR = os.path.join(DATA_DIR, "unity_data", "images")
-    UNITY_MASK_DIR = os.path.join(DATA_DIR, "unity_data", "masks")
     dir_checkpoint = os.path.join(os.getcwd(), "model" )
-
     # Create data loaders
-    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False)
-    Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
+    LC_dataset = data_loader.MaskedDataset(data_loader.LIVECELL_IMG_DIR, data_loader.LIVECELL_MASK_DIR, length=100, in_memory=False, return_domain_identifier=True)
+    Unity_dataset = data_loader.MaskedDataset(data_loader.UNITY_IMG_DIR, data_loader.UNITY_MASK_DIR, length=100, in_memory=False, return_domain_identifier=True)
     datasets = [LC_dataset, Unity_dataset]
     dataset = torch.utils.data.ConcatDataset(datasets)
    
@@ -106,7 +99,7 @@ if __name__ == '__main__':
     source_train_loader = DataLoader(train_set, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True) # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
     # source_val_loader = DataLoader(test_set, shuffle=True, drop_last=True, **loader_args)
 
-    Target_dataset = UnMaskedDataset(TARGET_DATA_DIR, mode=2)
+    Target_dataset = data_loader.UnMaskedDataset(data_loader.TARGET_DATA_DIR, mode=1)
 
     target_test_percent = 0.01
     n_test_target = int(len(Target_dataset) * target_test_percent)
@@ -117,27 +110,13 @@ if __name__ == '__main__':
     target_train_loader = DataLoader(target_train_set, shuffle=True, batch_size=batch_size, num_workers=4,
                                      pin_memory=True)
 
-    # Create generators and discriminators
-    # A = target
-    # B = source
-    # i.e. G_A2B = Generator from target to source
-    G_A2B = Generator()
-    G_B2A = Generator()
-    D_A = Discriminator()
-    D_B = Discriminator()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    G_A2B.to(device)
-    G_B2A.to(device)
-    D_A.to(device)
-    D_B.to(device)
 
-    models = (G_A2B, G_B2A, D_A, D_B)
     datasets = (source_train_loader, target_train_loader)
-
-    train_loop(models=models,
+    
+    train_loop(net=Unet(numChannels=1, classes=2, dropout = 0.1),
                datasets=datasets,
                device=device,
-               model_name="test_resize",
-               epochs=10,
-               batch_size=2)
+               epochs=3,
+               batch_size=20)
