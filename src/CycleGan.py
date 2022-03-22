@@ -356,7 +356,7 @@ def train_loop(models,
                         old_b_fake = b_fake.clone()
                         old_a_fake = a_fake.clone()
                     elif old_b_fake.shape[0] == 5*batch_size and b_fake.shape[0] == batch_size:
-                        rand_int = random.randint(batch_size, batch_size*batch_size-1)
+                        rand_int = random.randint(batch_size, 5*batch_size-1)
                         old_b_fake[rand_int-batch_size:rand_int] = b_fake.clone()
                         old_a_fake[rand_int-batch_size:rand_int] = a_fake.clone()
                     elif old_b_fake.shape[0] < 5*batch_size:
