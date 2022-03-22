@@ -23,4 +23,3 @@ src/.ipynb_checkpoints
 /model
 *.pth
 *.log
-/model
