@@ -287,8 +287,6 @@ def train_loop(models,
                     if (iters > 0 or epoch > 0) and iters % 3 == 0:
                         # Calculate discriminator loss with current A + randomly chosen saved B-->A domain images
                         # Dimensions must match
-                        print(f'old_a_fake.shape[0]-1: {old_a_fake.shape[0]-1}')
-                        print(f'batch_size: {batch_size}')
                         rand_int = random.randint(batch_size, old_a_fake.shape[0]-1)
                         Disc_loss_A = LSGAN_D(D_A(a_real), D_A(old_a_fake[rand_int-batch_size:rand_int].detach()))
                         D_A_losses.append(Disc_loss_A.item())
