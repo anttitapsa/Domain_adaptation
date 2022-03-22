@@ -18,7 +18,6 @@ DATA_DIR = os.path.join(os.getcwd(), "data")
 TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
 LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
 LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
-IMG_SIZE = 512
 
 
 class DataLoaderException(Exception):
@@ -30,7 +29,7 @@ class UnMaskedDataset(Dataset):
     A dataset without masks.
     img_dir: the directory containing images.
     """
-    def __init__(self, img_dir, mode=1):
+    def __init__(self, img_dir, mode=1, IMG_SIZE=512):
         # data loading
         # mode: 1 --> RandomCrop when using __getitem__
         #       2 --> Resized using IMAGE_SIZE when using __getitem__
@@ -42,6 +41,7 @@ class UnMaskedDataset(Dataset):
             raise DataLoaderException(f"The mode can be only int and it can be 1 or 2, it is {mode}")
         self.img_dir = img_dir
         self.mode = mode
+        self.IMG_SIZE= IMG_SIZE
 
 
     def __getitem__(self, idx):
@@ -58,11 +58,11 @@ class UnMaskedDataset(Dataset):
         if self.mode == 1:
             i, j, h, w = transforms.RandomCrop.get_params(
                 image,
-                output_size=(IMG_SIZE, IMG_SIZE))
+                output_size=(self.IMG_SIZE, self.IMG_SIZE))
             image = transforms.functional.crop(image, i, j, h, w)
             return image
         elif self.mode == 2:
-            resize = transforms.Resize((IMG_SIZE, IMG_SIZE))
+            resize = transforms.Resize((self.IMG_SIZE, self.IMG_SIZE))
             return resize.forward(image)
     
 
@@ -76,12 +76,13 @@ class MaskedDataset(Dataset):
     img_dir: The directory containing ONLY images used foor this data set
     mask_dir: The directory containing ONLY masks of images in the same order as the images are found in img_dir
     """
-    def __init__(self, img_dir, mask_path, length=None, in_memory=False):
+    def __init__(self, img_dir, mask_path, length=None, in_memory=False, IMG_SIZE=512):
         if not os.path.isdir(img_dir):
             raise DataLoaderException(f"The first argument 'img_dir' is not a directory, it is {img_dir}")
         if not os.path.isdir(mask_path):
             raise DataLoaderException(f"The second argument 'mask_path' is not a directory, it is {mask_path}")
         
+        self.IMG_SIZE = IMG_SIZE
         self.im_suffix = "." + os.listdir(img_dir)[0].split(".")[-1]
         self.ids = []
         self.masks = {}
@@ -144,7 +145,7 @@ class MaskedDataset(Dataset):
 
         i, j, h, w = transforms.RandomCrop.get_params(
             image,
-            output_size=(IMG_SIZE, IMG_SIZE))
+            output_size=(self.IMG_SIZE, self.IMG_SIZE))
         image = transforms.functional.crop(image, i, j, h, w)
         mask = transforms.functional.crop(mask, i, j, h, w)
 
