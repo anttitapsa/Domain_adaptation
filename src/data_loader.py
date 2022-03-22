@@ -62,7 +62,7 @@ class UnMaskedDataset(Dataset):
             image = transforms.functional.crop(image, i, j, h, w)
             return image
         elif self.mode == 2:
-            resize = transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=Image.NEAREST)
+            resize = transforms.Resize((IMG_SIZE, IMG_SIZE))
             return resize.forward(image)
     
 

@@ -1,36 +1,30 @@
 # Train loop for Unet from https://github.com/milesial/Pytorch-UNet
 # Lauri has commented some sections but code is untouched or left in comment
-
-import argparse
-import logging # logging duh
-import sys
+from logger import logger
 import os
 from pathlib import Path
 
-
-
+# Pytorch libraries and modules
 import torch
+import torchvision
 import torch.nn as nn
 import torch.nn.functional as F
-#import wandb  # logging / visualization
 from torch import optim
 from torch.utils.data import DataLoader, random_split
+from torch.utils.tensorboard import SummaryWriter
 
 # Loading bar
 from tqdm import tqdm
-from datetime import date, datetime
+from datetime import datetime
 
-# Change imports below these are from other modules
-# Import data
+# Import other modules 
+from functions import dice_loss # Import dice score (it's like F1 score)
+from evaluate import evaluate_model # Import testing for main in this file (optional)
 from data_loader import MaskedDataset
-# Import dice score (it's like F1 score)
-from functions import dice_loss
-# Import testing for main in this file (optional)
-from evaluate import evaluate_model
-# Import model
 from model import Unet
+from logger import logger
 
-# Paths need to be modified
+# Paths 
 DATA_DIR = os.path.join(os.getcwd(), "data")
 TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
 LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
@@ -52,7 +46,7 @@ def train_net(net,
               ):
     
     # NOTE the whole datahandling could be moved somewhere else (sections 1-3)
-
+    
     # 1. Split into train / validation partitions
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
@@ -66,17 +60,26 @@ def train_net(net,
     # 3. Model saving location
     Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
     model_number = 1
-    save_dir = os.path.join(dir_checkpoint, f'model_{datetime.now().date()}')
+    save_dir = os.path.join(dir_checkpoint, f'Unet_lr_{learning_rate}_batch_{batch_size}_{datetime.now().date()}')
     while os.path.exists(save_dir) == True:
         model_number += 1
-        save_dir = os.path.join(dir_checkpoint, f'model_{model_number}_{datetime.now().date()}')
+        save_dir = os.path.join(dir_checkpoint, f'Unet_lr_{learning_rate}_batch_{batch_size}_{datetime.now().date()}_{model_number}')
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
-    # 4. Create Log
-    logging.basicConfig(filename=os.path.join(save_dir, 'model_' + str(datetime.now().date()) +'.log'), level=logging.INFO)
-    logging.info(f'Training date and time:  {str(datetime.now())}')
-    logging.info(f'Starting training:\nEpochs:          {epochs}\nBatch size:      {batch_size}\nLearning rate:   {learning_rate}\nValidation percent: {val_percent}\nTraining size:   {n_train}\nValidation size: {n_val}\nCheckpoints:     {save_checkpoint}\nDevice:          {device.type}\nMixed Precision: {amp}')
-       
+    # 4. Create Tensorboard Log and text file log
+    comment = f' batch_size = {batch_size} lr = {learning_rate}'
+    tb = SummaryWriter(comment=comment, log_dir=os.path.join(dir_checkpoint, "runs", "UNet", f'UNet_lr_{learning_rate}_batch_{batch_size}_date_{datetime.now().date()}' ))
+    images, labels = next(iter(train_loader))
+    images = images.to(device) 
+    labels = labels.to(device)
+    grid = torchvision.utils.make_grid(images)
+    grid_labels = torchvision.utils.make_grid(torch.unsqueeze(labels, dim=1))
+    tb.add_image("labels", grid_labels)
+    tb.add_image("images", grid)
+    tb.add_graph(net, images)
+    # text logger
+    log = logger("UNet", save_dir, ["Dice score", "Cross entropy loss", "Total loss"])
+
     # 5. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
     optimizer = optim.RMSprop(net.parameters(), lr=learning_rate, weight_decay=1e-8, momentum=0.9) # https://pytorch.org/docs/stable/generated/torch.optim.RMSprop.html
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=2)  # goal: maximize Dice score
@@ -85,7 +88,9 @@ def train_net(net,
     global_step = 0 # For tqdm
 
     # 6. Begin training, The actual training loop
+    log.start(epochs, batch_size,  learning_rate, val_percent, n_train, n_val, save_checkpoint, device, amp)    
     for epoch in range(epochs):
+        
         net.train()
         epoch_loss = 0
         with tqdm(total=n_train, desc=f'Epoch {epoch + 1}/{epochs}', unit='img') as pbar:
@@ -100,13 +105,22 @@ def train_net(net,
                 true_masks = true_masks.to(device=device, dtype=torch.long)
 
                 # Make prediction and calculate loss
-                with torch.cuda.amp.autocast(enabled=amp):
+                # cuda
+                if torch.cuda.is_available():
+                    with torch.cuda.amp.autocast(enabled=amp):
+                        masks_pred = net(images)        # net is the UNET model
+                        loss = criterion(masks_pred, true_masks) \
+                            + dice_loss(F.softmax(masks_pred, dim=1).float(),
+                                        F.one_hot(true_masks, 2).permute(0, 3, 1, 2).float(),
+                                        multiclass=True)     # Loss function is the sum of cross entropy and Dice loss
+                # cpu
+                else:
                     masks_pred = net(images)        # net is the UNET model
                     loss = criterion(masks_pred, true_masks) \
-                           + dice_loss(F.softmax(masks_pred, dim=1).float(),
-                                       F.one_hot(true_masks, 2).permute(0, 3, 1, 2).float(),
-                                       multiclass=True)     # Loss function is the sum of cross entropy and Dice loss
-                           
+                        + dice_loss(F.softmax(masks_pred, dim=1).float(),
+                                    F.one_hot(true_masks, 2).permute(0, 3, 1, 2).float(),
+                                    multiclass=True)     # Loss function is the sum of cross entropy and Dice loss    
+
                 # Optimisation step
                 optimizer.zero_grad(set_to_none=True)
                 grad_scaler.scale(loss).backward()
@@ -118,50 +132,24 @@ def train_net(net,
                 global_step += 1
                 epoch_loss += loss.item()
                 
-                pbar.set_postfix(**{'loss (batch)': loss.item()})
+                pbar.set_postfix_str(f'loss (batch): {loss.item():.3f}')
 
-                '''
-                # Evaluation round
-                division_step = (n_train // (10 * batch_size))
-                if division_step > 0:
-                    if global_step % division_step == 0:
-                        
-                        histograms = {}
-                        for tag, value in net.named_parameters():
-                            tag = tag.replace('/', '.')
-                            histograms['Weights/' + tag] = wandb.Histogram(value.data.cpu())
-                            histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
-                        logging.info('Validation Dice score: {}'.format(val_score))
-                        experiment.log({
-                            'learning rate': optimizer.param_groups[0]['lr'],
-                            'validation Dice': val_score,
-                            'images': wandb.Image(images[0].cpu()),
-                            'masks': {
-                                'true': wandb.Image(true_masks[0].float().cpu()),
-                                'pred': wandb.Image(torch.softmax(masks_pred, dim=1).argmax(dim=1)[0].float().cpu()),
-                            },
-                            'step': global_step,
-                            'epoch': epoch,
-                            **histograms
-                        })
-                '''
-            logging.info({
-            'train loss': loss.item(),
-            'step': global_step,
-            'epoch': epoch+1
-            })
+                log.update_loss(loss.item(), "Cross entropy loss", global_step)
+                tb.add_scalar("Training Loss", loss.item(), global_step)
 
             val_score = evaluate_model(net, val_loader, device)
             scheduler.step(val_score)
-            logging.info(f'Validation score of epoch {epoch + 1} was {val_score}')
 
+            log.update_loss(loss.item(), "Total loss", epoch)
+            log.update_loss(val_score, "Dice score", epoch)
+            log.update(loss.item(), epoch, val_score)
 
-        if save_checkpoint:
-            #Path(dir_checkpoint).makedirs(parents=True, exist_ok=True)
-            #Path(os.path.join(dir_checkpoint, f'model_{datetime.now().date()}'))
-            torch.save(net, str(os.path.join(save_dir, 'checkpoint_epoch{}_{}.pth'.format(epoch + 1, datetime.now().date()))))
-            logging.info(f'Checkpoint {epoch + 1} saved in file checkpoint_epoch{epoch +1}_{datetime.now().date()}.pth!')
-
+            tb.add_scalar("Epoch loss", epoch_loss, epoch)
+            tb.add_scalar("Dice Score", val_score, epoch)
+            if save_checkpoint:
+                torch.save(net, str(os.path.join(save_dir, f'UNet_lr_{learning_rate}_batch_{batch_size}_date_{datetime.now().date()}checkpoint_epoch{epoch + 1}.pth')))
+    tb.close()
+    log.finish()
 
 if __name__ == '__main__':
 
@@ -169,10 +157,13 @@ if __name__ == '__main__':
     # now dataset is combined dataset using liveCell and synthetic dataset 
     # n_channels=3 for RGB images
     # n_classes is the number of probabilities you want to get per pixel
+
+    # Create neural network
     net = Unet(numChannels=1, classes=2, dropout = 0.1)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     net.to(device=device)
     
+    # Create datasets
     LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False)
     Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
     datasets = [LC_dataset, Unity_dataset]
@@ -182,22 +173,22 @@ if __name__ == '__main__':
     test_percent = 0.001
     n_test = int(len(dataset) * test_percent)
     n_train = len(dataset) - n_test
-    train_set, test_set = random_split(dataset, [n_train, n_test], generator=torch.Generator().manual_seed(123))
+    train_set, test_set = random_split(dataset, [n_train, n_test], generator=torch.Generator().manual_seed(seed))
     
+
     try:
-        train_net(net=net,
-                  dataset = train_set,
-                  epochs= 10, # Set epochs
-                  batch_size= 2, # Batch size
-                  learning_rate=0.008, # Learning rate
-                  device=device,
-                  val_percent=0.1, # Percent of test set
-                  save_checkpoint = True,
-                  amp=False
-                  #n_images = None,  # How many images per epoch if None goes whole dataset
-                  #in_memory = True # If true, load all images into memory at setupx
-                  )  
-        #torch.save(net.state_dict(), 'model.pth')
+        batch = [4, 8]
+        for i in batch:
+            train_net(net=net,
+                      dataset = train_set,
+                      epochs= 10, # Set epochs
+                      batch_size= i, # Batch size
+                      learning_rate=0.008, # Learning rate
+                      device=device,
+                      val_percent=0.01, # Percent of test set
+                      save_checkpoint=True,
+                      amp=False
+                    )  
     except KeyboardInterrupt:
         pass
         '''
