@@ -451,7 +451,7 @@ if __name__ == '__main__':
 
     train_set, test_set = torch.utils.data.random_split(dataset, [n_train, n_test], generator=torch.Generator().manual_seed(seed))
 
-    batch_size = 2
+    batch_size = 32
 
      
     source_train_loader = DataLoader(train_set, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True) # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
@@ -491,7 +491,7 @@ if __name__ == '__main__':
                device=device,
                model_name="test_resize",
                epochs=10,
-               batch_size=32,
+               batch_size=batch_size,
                save_checkpoint=True,
                Resume=False,
                Pause_path ="")
