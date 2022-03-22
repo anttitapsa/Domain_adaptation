@@ -488,8 +488,8 @@ if __name__ == '__main__':
                datasets=datasets,
                device=device,
                model_name="test_resize",
-               epochs=150,
-               batch_size=2,
+               epochs=10,
+               batch_size=32,
                save_checkpoint=True,
                Resume=False,
                Pause_path ="")
