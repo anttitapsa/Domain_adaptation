@@ -455,7 +455,7 @@ if __name__ == '__main__':
     source_train_loader = DataLoader(train_set, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True) # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
     # source_val_loader = DataLoader(test_set, shuffle=True, drop_last=True, **loader_args)
 
-    Target_dataset = UnMaskedDataset(TARGET_DATA_DIR, mode=2)
+    Target_dataset = UnMaskedDataset(TARGET_DATA_DIR, mode=2, IMG_SIZE=64)
 
     target_test_percent = 0.01
     n_test_target = int(len(Target_dataset) * target_test_percent)
