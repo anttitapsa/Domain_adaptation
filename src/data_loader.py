@@ -76,12 +76,13 @@ class MaskedDataset(Dataset):
     img_dir: The directory containing ONLY images used foor this data set
     mask_dir: The directory containing ONLY masks of images in the same order as the images are found in img_dir
     """
-    def __init__(self, img_dir, mask_path, length=None, in_memory=False, IMG_SIZE=512):
+    def __init__(self, img_dir, mask_path, length=None, in_memory=False, IMG_SIZE=512, mode=1):
         if not os.path.isdir(img_dir):
             raise DataLoaderException(f"The first argument 'img_dir' is not a directory, it is {img_dir}")
         if not os.path.isdir(mask_path):
             raise DataLoaderException(f"The second argument 'mask_path' is not a directory, it is {mask_path}")
         
+        self.mode = mode
         self.IMG_SIZE = IMG_SIZE
         self.im_suffix = "." + os.listdir(img_dir)[0].split(".")[-1]
         self.ids = []
@@ -140,15 +141,18 @@ class MaskedDataset(Dataset):
             except FileNotFoundError:
                 raise DataLoaderException(
                     f"Couldn't read mask {mask_path}. Make sure your masks are located in {self.mask_path}!")
-        
+
         image = transforms.ToTensor()(image)
-
-        i, j, h, w = transforms.RandomCrop.get_params(
-            image,
-            output_size=(self.IMG_SIZE, self.IMG_SIZE))
-        image = transforms.functional.crop(image, i, j, h, w)
-        mask = transforms.functional.crop(mask, i, j, h, w)
-
+        if self.mode == 1:
+            i, j, h, w = transforms.RandomCrop.get_params(
+                image,
+                output_size=(self.IMG_SIZE, self.IMG_SIZE))
+            image = transforms.functional.crop(image, i, j, h, w)
+            mask = transforms.functional.crop(mask, i, j, h, w)
+        if self.mode == 2:
+            resize = transforms.Resize((self.IMG_SIZE, self.IMG_SIZE))
+            image = resize.forward(image)
+            mask = resize.forward(mask.unsqueeze(dim=0))
         return image, mask
         
     def __len__(self):

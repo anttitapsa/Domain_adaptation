@@ -435,7 +435,7 @@ if __name__ == '__main__':
     dir_checkpoint = os.path.join(os.getcwd(), "model" )
 
     # Create data loaders
-    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False, IMG_SIZE=64)
+    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False, IMG_SIZE=64, mode=2)
     #Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
     #datasets = [LC_dataset, Unity_dataset]
     #dataset = torch.utils.data.ConcatDataset(datasets)
@@ -449,10 +449,10 @@ if __name__ == '__main__':
 
     train_set, test_set = torch.utils.data.random_split(dataset, [n_train, n_test], generator=torch.Generator().manual_seed(seed))
 
-    batch_size = 2
+    batch_size = 16
 
      
-    source_train_loader = DataLoader(train_set, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True) # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
+    source_train_loader = DataLoader(train_set, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True, drop_last=True) # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
     # source_val_loader = DataLoader(test_set, shuffle=True, drop_last=True, **loader_args)
 
     Target_dataset = UnMaskedDataset(TARGET_DATA_DIR, mode=2, IMG_SIZE=64)
@@ -464,7 +464,7 @@ if __name__ == '__main__':
                                                                       generator=torch.Generator().manual_seed(seed))
 
     target_train_loader = DataLoader(target_train_set, shuffle=True, batch_size=batch_size, num_workers=4,
-                                     pin_memory=True)
+                                     pin_memory=True, drop_last=True)
 
     # Create generators and discriminators
     # A = target
@@ -488,8 +488,8 @@ if __name__ == '__main__':
                datasets=datasets,
                device=device,
                model_name="test_resize",
-               epochs=10,
+               epochs=50,
                batch_size=batch_size,
                save_checkpoint=True,
-               Resume=False,
-               Pause_path ="")
+               Resume=True,
+               Pause_path ="/u/09/huttuna6/unix/Documents/LST_GIT/lst-project/model/CycleGan_2022-03-23_24/PAUSE/paused_training.pth")
