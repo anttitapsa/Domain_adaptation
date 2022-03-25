@@ -18,10 +18,10 @@ class Unet(Module):
     # classes: number of labels
     # dropout: During training, randomly zeroes some of the elements of the input tensor with probability 
     # dropout to prevent overtraining
-    def __init__(self, numChannels = 1, classes = 2, dropout = 0.1):
+    def __init__(self, numChannels = 1, classes = 2, dropout = 0.1, image_res=512):
         super(Unet, self).__init__()
         
-        self.domain_classifier = domain_classifier(in_channel=32)
+        self.domain_classifier = domain_classifier(in_channel=int((image_res//16)**2*1024))
         
         # Encoder (traditional convolutional and max pooling layers)
         self.conv1 = Unet._conv2d_block(in_channel = numChannels, out_channel = 64)
@@ -82,8 +82,8 @@ class Unet(Module):
         x = self.dropout4(x)
         
         x5 = self.conv5(x)
-        #x = 
-        y = self.domain_classifier(x5)
+        x_dom = torch.flatten(x5, start_dim=1) 
+        y = self.domain_classifier(x_dom)
         
         x6 = self.transpose6(x5)
         x = cat((x6, x4), dim = 1)
@@ -130,7 +130,7 @@ class domain_classifier(nn.Module):
         x = grad_reverse(x)
         x = F.leaky_relu(self.drop(self.fc1(x)))
         x = self.fc2(x)
-        return F.sigmoid(x)
+        return torch.sigmoid(x)
       
 class GradReverse(torch.autograd.Function):
     @staticmethod

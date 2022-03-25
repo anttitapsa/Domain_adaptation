@@ -16,10 +16,10 @@ def train_loop(net,
                datasets,
                device,
                epochs=5,
-               batch_size=2,
                learning_rate=0.001,
                amp: bool = False):
 
+    net.to(device)
     # Model saving location
     Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
     model_number = 1
@@ -53,8 +53,8 @@ def train_loop(net,
             source_mask = data_source[1].to(device)
             
             target_im = data_target[0].to(device)
-            mix_data = torch.cat((source_im, target_im), 0)
-            true_domain_labels = torch.cat((data_source[2], data_target[1]), 0)
+            mix_data = torch.cat((source_im, target_im), 0).to(device)
+            true_domain_labels = torch.cat((data_source[2], data_target[1]), 0).float().to(device)
             # Teach with source encoder + decoder
             with torch.cuda.amp.autocast(enabled=amp):
                 masks_pred, domain_label = net(source_im)
@@ -71,7 +71,9 @@ def train_loop(net,
             
             # Teach with target encoder + grl
             masks_pred, domain_label = net(mix_data)
-            loss = criterion(domain_label, true_domain_labels)
+            #print('domain_label', domain_label)
+            #print('true_domain_labels', true_domain_labels)
+            loss = criterion(domain_label.flatten(), true_domain_labels)
             # Optimisation step
             optim_target.zero_grad()
             loss.backward()
@@ -117,8 +119,7 @@ if __name__ == '__main__':
 
     datasets = (source_train_loader, target_train_loader)
     
-    train_loop(net=Unet(numChannels=1, classes=2, dropout = 0.1),
+    train_loop(net=Unet(numChannels=1, classes=2, dropout = 0.1, image_res=data_loader.IMG_SIZE),
                datasets=datasets,
                device=device,
-               epochs=3,
-               batch_size=20)
+               epochs=3)
