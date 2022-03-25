@@ -46,7 +46,14 @@ def train_loop(net,
     # Actual training loop
     for epoch in range(epochs):
         iters = 0
+        n = 0
         for i, (data_source, data_target) in tqdm(enumerate(zip(source_train_loader, target_train_loader))):
+            
+            # Calculate lambda decay related stuff
+            len_dataloader = min(len(source_train_loader), len(target_train_loader))
+            p = float(n + epoch * len_dataloader) / epochs / len_dataloader
+            lambd = 2. / (1. + np.exp(-10 * p)) - 1
+            n += 1 # Is it correct?
             
             # Prepare data
             source_im = data_source[0].to(device)
@@ -57,7 +64,7 @@ def train_loop(net,
             true_domain_labels = torch.cat((data_source[2], data_target[1]), 0).float().to(device)
             # Teach with source encoder + decoder
             with torch.cuda.amp.autocast(enabled=amp):
-                masks_pred, domain_label = net(source_im)
+                masks_pred, domain_label = net(source_im, lambd)
                 semantic_loss = dice_loss(
                     F.softmax(masks_pred, dim=1).float(),
                     F.one_hot(source_mask.to(torch.int64), 2).permute(0, 3, 1, 2).float(),
@@ -70,7 +77,8 @@ def train_loop(net,
             
             
             # Teach with target encoder + grl
-            masks_pred, domain_label = net(mix_data)
+            
+            masks_pred, domain_label = net(mix_data, lambd)
             #print('domain_label', domain_label)
             #print('true_domain_labels', true_domain_labels)
             loss = criterion(domain_label.flatten(), true_domain_labels)

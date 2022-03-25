@@ -63,7 +63,7 @@ class Unet(Module):
         self.outc = Conv2d(in_channels = 64, out_channels = classes, kernel_size = 1)
         
         
-    def forward(self, x):
+    def forward(self, x, lamd):
         # function that defines how the model is going to be run, from input to output
         x1 = self.conv1(x)
         x = self.maxpool1(x1)
@@ -83,7 +83,7 @@ class Unet(Module):
         
         x5 = self.conv5(x)
         x_dom = torch.flatten(x5, start_dim=1) 
-        y = self.domain_classifier(x_dom)
+        y = self.domain_classifier(x_dom, lamd)
         
         x6 = self.transpose6(x5)
         x = cat((x6, x4), dim = 1)
@@ -126,21 +126,24 @@ class domain_classifier(nn.Module):
         self.fc2 = nn.Linear(100, 1)
         self.drop = nn.Dropout2d(0.25)
 
-    def forward(self, x):
-        x = grad_reverse(x)
+    def forward(self, x, lamd):
+        x = grad_reverse(x, lamd)
         x = F.leaky_relu(self.drop(self.fc1(x)))
         x = self.fc2(x)
         return torch.sigmoid(x)
       
-class GradReverse(torch.autograd.Function):
+# Code from https://discuss.pytorch.org/t/solved-reverse-gradients-in-backward-pass/3589/17
+class GradReverse(Function):
     @staticmethod
-    def forward(ctx, x):
+    def forward(ctx, x,lambd):
+        ctx.save_for_backward(lambd)
         return x.view_as(x)
 
     @staticmethod
     def backward(ctx, grad_output):
-        return grad_output.neg()
+        lambd=ctx.saved_tensors[0]
+        return grad_output.neg()*lambd, None
 
-def grad_reverse(x):
-    return GradReverse.apply(x)
+def grad_reverse(x,lambd):
+    return GradReverse.apply(x,lambd)
 
