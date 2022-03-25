@@ -133,10 +133,10 @@ class domain_classifier(nn.Module):
         return torch.sigmoid(x)
       
 # Code from https://discuss.pytorch.org/t/solved-reverse-gradients-in-backward-pass/3589/17
-class GradReverse(Function):
+class GradReverse(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x,lambd):
-        ctx.save_for_backward(lambd)
+        ctx.save_for_backward(torch.tensor(lambd, requires_grad=False))
         return x.view_as(x)
 
     @staticmethod

@@ -11,6 +11,7 @@ from tqdm import tqdm
 import data_loader
 from model import Unet
 from functions import dice_loss
+import numpy as np
 
 def train_loop(net,
                datasets,
