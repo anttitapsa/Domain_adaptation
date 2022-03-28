@@ -488,7 +488,7 @@ if __name__ == '__main__':
                datasets=datasets,
                device=device,
                model_name="test_resize",
-               epochs=50,
+               epochs=10,
                batch_size=batch_size,
                save_checkpoint=True,
                Resume=True,
