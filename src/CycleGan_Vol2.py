@@ -224,6 +224,7 @@ if __name__ == '__main__':
 
     generator_g, generator_f, discriminator_x, discriminator_y = train_loop(dataloaders, log_dir = os.path.join(dir_checkpoint, "runs", "Unet_cyclegan"), device=device)
 
+    os.mkdir(os.path.join(dir_checkpoint, "test_unetcyclegan"))
     torch.save(generator_g, os.path.join(dir_checkpoint, "test_unetcyclegan", "generator_g.pth"))
     torch.save(generator_f, os.path.join(dir_checkpoint, "test_unetcyclegan", "generator_f.pth"))
     torch.save(discriminator_x, os.path.join(dir_checkpoint, "test_unetcyclegan", "discriminator_x.pth"))
