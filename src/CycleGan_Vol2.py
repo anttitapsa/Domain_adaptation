@@ -1,4 +1,5 @@
 import os
+from pyrfc3339 import generate
 
 import torch
 import torch.nn as nn
@@ -22,53 +23,23 @@ class unet_generator(nn.Module):
                                      nn.LeakyReLU(inplace = True)),
                         nn.Sequential(nn.Conv2d(in_channels = 256, out_channels = 512, kernel_size = 3, padding = 1),
                                      nn.InstanceNorm2d(num_features = 512),
-                                     nn.LeakyReLU(inplace = True)),
-                        nn.Sequential(nn.Conv2d(in_channels = 512, out_channels = 512, kernel_size = 3, padding = 1),
-                                     nn.InstanceNorm2d(num_features = 512),
-                                     nn.LeakyReLU(inplace = True)),
-                        nn.Sequential(nn.Conv2d(in_channels = 512, out_channels = 512, kernel_size = 3, padding = 1),
-                                     nn.InstanceNorm2d(num_features = 512),
-                                     nn.LeakyReLU(inplace = True)),
-                        nn.Sequential(nn.Conv2d(in_channels = 512, out_channels = 512, kernel_size = 3, padding = 1),
-                                     nn.InstanceNorm2d(num_features = 512),
-                                     nn.LeakyReLU(inplace = True)),
-                        nn.Sequential(nn.Conv2d(in_channels = 512, out_channels = 512, kernel_size = 3, padding = 1),
-                                     nn.InstanceNorm2d(num_features = out_channels),
-                                     nn.LeakyReLU(inplace = True)),
-                        nn.Sequential(nn.Conv2d(in_channels = 512, out_channels = 512, kernel_size = 3, padding = 1),
-                                     nn.InstanceNorm2d(num_features = 512),
                                      nn.LeakyReLU(inplace = True))]
-
-        self.decoder = [nn.Sequential(nn.ConvTranspose2d(in_channels= 512, out_channels= 512, stride=1, kernel_size= 3, padding=1),
-                                     nn.InstanceNorm2d(num_features=512),
-                                     nn.Dropout2d(p=0.5),
-                                     nn.ReLU()),
-                        nn.Sequential(nn.ConvTranspose2d(in_channels= 512, out_channels= 512, stride=1, kernel_size= 3, padding=1),
-                                     nn.InstanceNorm2d(num_features=512),
-                                     nn.Dropout2d(p=0.5),
-                                     nn.ReLU()),
-                        nn.Sequential(nn.ConvTranspose2d(in_channels= 512, out_channels= 512, stride=1, kernel_size= 3, padding=1),
-                                     nn.InstanceNorm2d(num_features=512),
-                                     nn.Dropout2d(p=0.5),
-                                     nn.ReLU()),
-                        nn.Sequential(nn.ConvTranspose2d(in_channels= 512, out_channels= 512, stride=1, kernel_size= 3, padding=1),
-                                     nn.InstanceNorm2d(num_features=512),
-                                     nn.ReLU()),
-                        nn.Sequential(nn.ConvTranspose2d(in_channels= 512, out_channels= 512, stride=1, kernel_size= 3, padding=1),
-                                     nn.InstanceNorm2d(num_features=512),
-                                     nn.ReLU()),
-                        nn.Sequential(nn.ConvTranspose2d(in_channels= 512, out_channels= 256, stride=1, kernel_size= 3, padding=1),
+        
+        self.decoder = [nn.Sequential(nn.ConvTranspose2d(in_channels= 512, out_channels= 256,  kernel_size= 3, padding=1),
                                      nn.InstanceNorm2d(num_features=256),
                                      nn.ReLU()),
-                        nn.Sequential(nn.ConvTranspose2d(in_channels= 256, out_channels= 128, kernel_size= 3, padding=1),
+                        nn.Sequential(nn.ConvTranspose2d(in_channels= 512, out_channels= 128, kernel_size= 3, padding=1),
                                      nn.InstanceNorm2d(num_features=128),
                                      nn.ReLU()),
-                        nn.Sequential(nn.ConvTranspose2d(in_channels= 128, out_channels=64, kernel_size= 3, padding=1),
+                        nn.Sequential(nn.ConvTranspose2d(in_channels= 256, out_channels=64, kernel_size= 3, padding=1),
                                      nn.InstanceNorm2d(num_features=64),
+                                     nn.ReLU()),
+                        nn.Sequential(nn.ConvTranspose2d(in_channels= 128, out_channels=32, kernel_size= 3, padding=1),
+                                     nn.InstanceNorm2d(num_features=32),
                                      nn.ReLU())]
 
-        self.out_layer = nn.Sequential(nn.Conv2d(in_channels=64, out_channels=1, kernel_size=4, stride=2),
-                                       nn.Tanh())
+        self.out_layer = nn.Sequential(nn.ConvTranspose2d(in_channels=128, out_channels=1, kernel_size=3, padding=1),
+                                        nn.Tanh())
         
     def forward(self, x):
         skips = []
@@ -76,16 +47,17 @@ class unet_generator(nn.Module):
             down.to(self.device)
             x = down.forward(x)
             skips.append(x)
-        
+              
         skips = reversed(skips[:-1])
-
+        
         for up, skip in zip(self.decoder, skips):
-            print(x.shape)
             up.to(self.device)
             x = up.forward(x)
-            x = torch.cat((x, skip), dim=0)
+            x = torch.cat((x, skip), dim=1)
+        x = self.out_layer.forward(x)
+        print(f'lopullinen: {x.shape}')
+        return x
         
-        return self.out_layer.forward(x)
 
 
 class discriminator(nn.Module):
@@ -106,15 +78,16 @@ class discriminator(nn.Module):
                                      nn.LeakyReLU(),
                                     nn.ZeroPad2d((1,1)),#mahdollinen ongelma
                                     nn.Conv2d(in_channels=512, out_channels=1, kernel_size=4, stride=1))
+    
+    def forward(self, x):
+        return self.downsample.forward(x)
+
 
 def discriminator_loss(real, generated):
-    real_loss = nn.BCELoss(real)
-    generated_loss = nn.BCELoss(generated)
-    total_disc_loss = real_loss + generated_loss
-    return total_disc_loss*0.5
+    return (torch.mean((real - 1)**2) + torch.mean(generated**2))
 
 def generator_loss(generated):
-    return nn.BCELoss(generated)
+    return torch.mean((generated - 1)**2)
 
 def calc_cycle_loss(real_image, cycled_image):
     return 10 * torch.mean(torch.abs(real_image-cycled_image))
@@ -145,15 +118,14 @@ def train_loop(dataloaders,
     # extract dataloaders
     train_loaders = dataloaders[0]
     test_loaders = dataloaders[1]
-    print(type(train_loaders))
-    print(type(train_loaders[0]))
+
 
     for epoch in range(epochs):
+        Losses = []
         for i,  (source_img, target_img) in enumerate(zip(train_loaders[0], train_loaders[1]), 0):
 
             source_img = source_img[0].to(device)
             target_img = target_img.to(device)
-            print(device)
             generator_g.to(device)
             generator_f.to(device)
             discriminator_x.to(device)
@@ -164,7 +136,8 @@ def train_loop(dataloaders,
             generator_f_optimizer.zero_grad()
             discriminator_x_optimizer.zero_grad()
             discriminator_y_optimizer.zero_grad()
-
+            
+            '''
             # Generator G translates X -> Y
             # Generator F translates Y -> X.
             fake_y = generator_g(source_img)
@@ -177,37 +150,37 @@ def train_loop(dataloaders,
             same_x = generator_f(source_img)
             same_y = generator_g(target_img)
 
-            disc_source =  discriminator_x(source_img, training=True) 
-            disc_target = discriminator_y(target_img, training=True) 
+            disc_source =  discriminator_x(source_img) 
+            disc_target = discriminator_y(target_img) 
             
-            disc_fake_source = discriminator_x(fake_x, training=True) 
-            disc_fake_target = discriminator_y(fake_y, training=True) 
-            
+            disc_fake_source = discriminator_x(fake_x) 
+            disc_fake_target = discriminator_y(fake_y) 
+            '''
+            #################################
             # calculate the loss
-            gen_g_loss = generator_loss(disc_fake_target)
-            gen_f_loss = generator_loss(disc_fake_source)
-
-            # calculate the total cycle loss
-            total_cycle_loss = calc_cycle_loss(source_img, cycled_x) + calc_cycle_loss(target_img, cycled_y)
+            gen_g_loss = generator_loss(discriminator_x(generator_g(target_img)))
+            total_cycle_loss = calc_cycle_loss(source_img, generator_f(generator_g(source_img))) + calc_cycle_loss(target_img, generator_f(generator_g(target_img)))
+            total_gen_g_loss = gen_g_loss + total_cycle_loss + identity_loss(target_img, generator_g(target_img))
             
-            # Total generator loss = adversarial loss + cycle loss
-            total_gen_g_loss = gen_g_loss + total_cycle_loss + identity_loss(target_img, same_y)
-            total_gen_f_loss = gen_f_loss + total_cycle_loss + identity_loss(source_img, same_x)
-            
-            disc_x_loss = discriminator_loss(disc_source, disc_fake_source) # calculate the discriminator_loss for disc_fake_x wrt disc_real_x
-            disc_y_loss = discriminator_loss(disc_target, disc_fake_target)
-
             total_gen_g_loss.backward()
             generator_g_optimizer.step()
-
+            #################################
+            gen_f_loss = generator_loss(discriminator_y(generator_g(source_img)))
+            total_cycle_loss = calc_cycle_loss(source_img, generator_f(generator_g(source_img))) + calc_cycle_loss(target_img, generator_f(generator_g(target_img)))
+            total_gen_f_loss = gen_f_loss + total_cycle_loss + identity_loss(source_img, generator_f(source_img))
+            
             total_gen_f_loss.backward()
             generator_f_optimizer.step()
+            #################################
 
+            disc_x_loss = discriminator_loss(discriminator_x(source_img), discriminator_x(generator_g(target_img)) ) # calculate the discriminator_loss for disc_fake_x wrt disc_real_x
             disc_x_loss.backward()
             discriminator_x_optimizer.step()
-
+            #################################
+            disc_y_loss = discriminator_loss(discriminator_y(target_img), discriminator_y(generator_g(source_img)))
             disc_y_loss.backward()
             discriminator_y_optimizer.step()
+            
         
         tb.add_scalar("Total generator G training loss", total_gen_g_loss, epoch +1)
         tb.add_scalar("Total generator F training loss", total_gen_f_loss, epoch +1)
