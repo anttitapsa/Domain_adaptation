@@ -1,6 +1,5 @@
 import os
-from pyrfc3339 import generate
-
+from tqdm import tqdm
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -55,7 +54,6 @@ class unet_generator(nn.Module):
             x = up.forward(x)
             x = torch.cat((x, skip), dim=1)
         x = self.out_layer.forward(x)
-        print(f'lopullinen: {x.shape}')
         return x
         
 
@@ -96,7 +94,7 @@ def identity_loss(real_image, sample_image):
     return 10 * 0.5 * torch.mean(torch.abs(real_image - sample_image))
 
 def train_loop(dataloaders,
-               epochs=20,
+               epochs=5,
                device="cpu",
                learning_rate = 0.0002,
                betas=(0.5, 0.999),
@@ -122,69 +120,70 @@ def train_loop(dataloaders,
 
     for epoch in range(epochs):
         Losses = []
-        for i,  (source_img, target_img) in enumerate(zip(train_loaders[0], train_loaders[1]), 0):
+        with tqdm(total=len(train_loaders[1]), desc=f'Epoch {epoch + 1}/{epochs}', unit='img') as pbar:
+            for i,  (source_img, target_img) in enumerate(zip(train_loaders[0], train_loaders[1]), 0):
 
-            source_img = source_img[0].to(device)
-            target_img = target_img.to(device)
-            generator_g.to(device)
-            generator_f.to(device)
-            discriminator_x.to(device)
-            discriminator_y.to(device)
+                source_img = source_img[0].to(device)
+                target_img = target_img.to(device)
+                generator_g.to(device)
+                generator_f.to(device)
+                discriminator_x.to(device)
+                discriminator_y.to(device)
 
 
-            generator_g_optimizer.zero_grad()
-            generator_f_optimizer.zero_grad()
-            discriminator_x_optimizer.zero_grad()
-            discriminator_y_optimizer.zero_grad()
+                generator_g_optimizer.zero_grad()
+                generator_f_optimizer.zero_grad()
+                discriminator_x_optimizer.zero_grad()
+                discriminator_y_optimizer.zero_grad()
+                
+                '''
+                # Generator G translates X -> Y
+                # Generator F translates Y -> X.
+                fake_y = generator_g(source_img)
+                cycled_x = generator_f(fake_y)
+
+                fake_x = generator_g(target_img)
+                cycled_y = generator_f(fake_x)
+
+                # same_x and same_y are used for identity loss.
+                same_x = generator_f(source_img)
+                same_y = generator_g(target_img)
+
+                disc_source =  discriminator_x(source_img) 
+                disc_target = discriminator_y(target_img) 
+                
+                disc_fake_source = discriminator_x(fake_x) 
+                disc_fake_target = discriminator_y(fake_y) 
+                '''
+                #################################
+                # calculate the loss
+                gen_g_loss = generator_loss(discriminator_x(generator_g(target_img)))
+                total_cycle_loss = calc_cycle_loss(source_img, generator_f(generator_g(source_img))) + calc_cycle_loss(target_img, generator_f(generator_g(target_img)))
+                total_gen_g_loss = gen_g_loss + total_cycle_loss + identity_loss(target_img, generator_g(target_img))
+                
+                total_gen_g_loss.backward()
+                generator_g_optimizer.step()
+                #################################
+                gen_f_loss = generator_loss(discriminator_y(generator_g(source_img)))
+                total_cycle_loss = calc_cycle_loss(source_img, generator_f(generator_g(source_img))) + calc_cycle_loss(target_img, generator_f(generator_g(target_img)))
+                total_gen_f_loss = gen_f_loss + total_cycle_loss + identity_loss(source_img, generator_f(source_img))
+                
+                total_gen_f_loss.backward()
+                generator_f_optimizer.step()
+                #################################
+
+                disc_x_loss = discriminator_loss(discriminator_x(source_img), discriminator_x(generator_g(target_img)) ) # calculate the discriminator_loss for disc_fake_x wrt disc_real_x
+                disc_x_loss.backward()
+                discriminator_x_optimizer.step()
+                #################################
+                disc_y_loss = discriminator_loss(discriminator_y(target_img), discriminator_y(generator_g(source_img)))
+                disc_y_loss.backward()
+                discriminator_y_optimizer.step()
+                pbar.update(1)
             
-            '''
-            # Generator G translates X -> Y
-            # Generator F translates Y -> X.
-            fake_y = generator_g(source_img)
-            cycled_x = generator_f(fake_y)
-
-            fake_x = generator_g(target_img)
-            cycled_y = generator_f(fake_x)
-
-            # same_x and same_y are used for identity loss.
-            same_x = generator_f(source_img)
-            same_y = generator_g(target_img)
-
-            disc_source =  discriminator_x(source_img) 
-            disc_target = discriminator_y(target_img) 
-            
-            disc_fake_source = discriminator_x(fake_x) 
-            disc_fake_target = discriminator_y(fake_y) 
-            '''
-            #################################
-            # calculate the loss
-            gen_g_loss = generator_loss(discriminator_x(generator_g(target_img)))
-            total_cycle_loss = calc_cycle_loss(source_img, generator_f(generator_g(source_img))) + calc_cycle_loss(target_img, generator_f(generator_g(target_img)))
-            total_gen_g_loss = gen_g_loss + total_cycle_loss + identity_loss(target_img, generator_g(target_img))
-            
-            total_gen_g_loss.backward()
-            generator_g_optimizer.step()
-            #################################
-            gen_f_loss = generator_loss(discriminator_y(generator_g(source_img)))
-            total_cycle_loss = calc_cycle_loss(source_img, generator_f(generator_g(source_img))) + calc_cycle_loss(target_img, generator_f(generator_g(target_img)))
-            total_gen_f_loss = gen_f_loss + total_cycle_loss + identity_loss(source_img, generator_f(source_img))
-            
-            total_gen_f_loss.backward()
-            generator_f_optimizer.step()
-            #################################
-
-            disc_x_loss = discriminator_loss(discriminator_x(source_img), discriminator_x(generator_g(target_img)) ) # calculate the discriminator_loss for disc_fake_x wrt disc_real_x
-            disc_x_loss.backward()
-            discriminator_x_optimizer.step()
-            #################################
-            disc_y_loss = discriminator_loss(discriminator_y(target_img), discriminator_y(generator_g(source_img)))
-            disc_y_loss.backward()
-            discriminator_y_optimizer.step()
-            
-        
-        tb.add_scalar("Total generator G training loss", total_gen_g_loss, epoch +1)
-        tb.add_scalar("Total generator F training loss", total_gen_f_loss, epoch +1)
-        tb.add_scalar("Total cycle training loss", total_cycle_loss, epoch +1)
+            tb.add_scalar("Total generator G training loss", total_gen_g_loss, epoch +1)
+            tb.add_scalar("Total generator F training loss", total_gen_f_loss, epoch +1)
+            tb.add_scalar("Total cycle training loss", total_cycle_loss, epoch +1)
     
     tb.close()
     return generator_g, generator_f, discriminator_x, discriminator_y
