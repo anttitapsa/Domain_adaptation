@@ -42,7 +42,7 @@ class ResBlock(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, features=64, blocks=9):
+    def __init__(self, features=64, blocks=1):
         super(Generator, self).__init__()
         self.conv1 = nn.Sequential( nn.ReflectionPad2d(3),
                                     nn.Conv2d(  in_channels=chanels,
