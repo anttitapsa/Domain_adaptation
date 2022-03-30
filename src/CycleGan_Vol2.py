@@ -142,8 +142,8 @@ def train_loop(dataloaders,
                 fake_y = generator_g(source_img)
                 cycled_x = generator_f(fake_y)
 
-                fake_x = generator_g(target_img)
-                cycled_y = generator_f(fake_x)
+                fake_x = generator_f(target_img)
+                cycled_y = generator_g(fake_x)
 
                 # same_x and same_y are used for identity loss.
                 same_x = generator_f(source_img)
@@ -157,22 +157,22 @@ def train_loop(dataloaders,
                 '''
                 #################################
                 # calculate the loss
-                gen_g_loss = generator_loss(discriminator_x(generator_g(target_img)))
-                total_cycle_loss = calc_cycle_loss(source_img, generator_f(generator_g(source_img))) + calc_cycle_loss(target_img, generator_f(generator_g(target_img)))
+                gen_g_loss = generator_loss(discriminator_x(generator_f(target_img)))
+                total_cycle_loss = calc_cycle_loss(source_img, generator_f(generator_g(source_img))) + calc_cycle_loss(target_img, generator_g(generator_f(target_img)))
                 total_gen_g_loss = gen_g_loss + total_cycle_loss + identity_loss(target_img, generator_g(target_img))
                 
                 total_gen_g_loss.backward()
                 generator_g_optimizer.step()
                 #################################
                 gen_f_loss = generator_loss(discriminator_y(generator_g(source_img)))
-                total_cycle_loss = calc_cycle_loss(source_img, generator_f(generator_g(source_img))) + calc_cycle_loss(target_img, generator_f(generator_g(target_img)))
+                total_cycle_loss = calc_cycle_loss(source_img, generator_f(generator_g(source_img))) + calc_cycle_loss(target_img, generator_g(generator_f(target_img)))
                 total_gen_f_loss = gen_f_loss + total_cycle_loss + identity_loss(source_img, generator_f(source_img))
                 
                 total_gen_f_loss.backward()
                 generator_f_optimizer.step()
                 #################################
 
-                disc_x_loss = discriminator_loss(discriminator_x(source_img), discriminator_x(generator_g(target_img)) ) # calculate the discriminator_loss for disc_fake_x wrt disc_real_x
+                disc_x_loss = discriminator_loss(discriminator_x(source_img), discriminator_x(generator_f(target_img)) ) # calculate the discriminator_loss for disc_fake_x wrt disc_real_x
                 disc_x_loss.backward()
                 discriminator_x_optimizer.step()
                 #################################
@@ -223,12 +223,12 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     generator_g, generator_f, discriminator_x, discriminator_y = train_loop(dataloaders, log_dir = os.path.join(dir_checkpoint, "runs", "Unet_cyclegan"), device=device)
-
-    os.mkdir(os.path.join(dir_checkpoint, "test_unetcyclegan"))
-    torch.save(generator_g, os.path.join(dir_checkpoint, "test_unetcyclegan", "generator_g.pth"))
-    torch.save(generator_f, os.path.join(dir_checkpoint, "test_unetcyclegan", "generator_f.pth"))
-    torch.save(discriminator_x, os.path.join(dir_checkpoint, "test_unetcyclegan", "discriminator_x.pth"))
-    torch.save(discriminator_y, os.path.join(dir_checkpoint, "test_unetcyclegan", "discriminator_y.pth"))
+    name = "unet_cyclegan_2"
+    os.mkdir(os.path.join(dir_checkpoint, name))
+    torch.save(generator_g, os.path.join(dir_checkpoint, name, "generator_g.pth"))
+    torch.save(generator_f, os.path.join(dir_checkpoint, name, "generator_f.pth"))
+    torch.save(discriminator_x, os.path.join(dir_checkpoint, name, "discriminator_x.pth"))
+    torch.save(discriminator_y, os.path.join(dir_checkpoint, name, "discriminator_y.pth"))
     
 
 
