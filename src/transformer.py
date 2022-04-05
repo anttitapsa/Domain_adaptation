@@ -5,9 +5,9 @@ import torch
 from torchvision import transforms
 # python -m pip install -U scikit-image
 from skimage.util import random_noise
-
+import random
 # function adds noise to tensors (and flips them)
-def add_noise_to_images(image, amount):
+def add_noise_to_images(image, amount = 0.05):
     noise_image = image + torch.randn(image.size()) * 0.07 + 0.1 
     noise_image = torch.tensor(random_noise(noise_image, mode = 's&p', salt_vs_pepper = 0.0, amount=amount))
     '''
@@ -17,6 +17,24 @@ def add_noise_to_images(image, amount):
     transformed_image = [hflipper(transformed_image[0]) for _ in range(4)][0]
     '''
     return noise_image
+
+def add_fake_magnetballs(image, min_amount = 20, max_amount = 50):
+    # Getting the dimensions of the image
+    image = image.numpy()
+    channels, row, col = image.shape
+    number_of_pixels = random.randint(min_amount, max_amount)
+    r = 10
+    for i in range(number_of_pixels):
+        # Pick a random y coordinate
+        y_coord=random.randint(r, row - 1 - r)
+        # Pick a random x coordinate
+        x_coord=random.randint(r, col - 1 - r)
+        for s in range(r):
+            for i in range(0,360,1):
+                x1 = s * np.cos(i)
+                y1 = s * np.sin(i)
+                image[0, y_coord+y1.astype(int),x_coord+x1.astype(int)] = 0              
+    return transforms.ToTensor()(image)
 
 def resize_image_(image, size):
     resize = transforms.Resize(size)

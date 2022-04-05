@@ -8,7 +8,7 @@ from torchvision.io import read_image
 import os
 import numpy as np
 from tqdm import tqdm
-
+import transformer
 
 if os.path.basename(os.getcwd()) != "lst-project":
     raise Exception(f"You are in {os.getcwd()}, please move into root directory lst-project.")
@@ -147,7 +147,8 @@ class MaskedDataset(Dataset):
             output_size=(IMG_SIZE, IMG_SIZE))
         image = transforms.functional.crop(image, i, j, h, w)
         mask = transforms.functional.crop(mask, i, j, h, w)
-
+        # adds magneballs to livecell
+        image = add_fake_magnetballs(image)
         return image, mask
         
     def __len__(self):
