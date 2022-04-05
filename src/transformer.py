@@ -18,13 +18,14 @@ def add_noise_to_images(image, amount = 0.05):
     '''
     return noise_image
 
-def add_fake_magnetballs(image, min_amount = 20, max_amount = 50):
+def add_fake_magnetballs(image, min_amount = 30, max_amount = 70):
     # Getting the dimensions of the image
     image = image.numpy()
     channels, row, col = image.shape
     number_of_pixels = random.randint(min_amount, max_amount)
-    r = 10
-    for i in range(number_of_pixels):
+   
+    for i in range(number_of_pixels): 
+        r = random.choice([5,7,10,13])
         # Pick a random y coordinate
         y_coord=random.randint(r, row - 1 - r)
         # Pick a random x coordinate
