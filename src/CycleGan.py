@@ -491,5 +491,5 @@ if __name__ == '__main__':
                epochs=10,
                batch_size=batch_size,
                save_checkpoint=True,
-               Resume=False,
-               Pause_path ="")
+               Resume=True,
+               Pause_path ="/m/home/home0/09/huttuna6/data/Documents/LST_GIT/lst-project/model/CycleGan_2022-04-05/PAUSE/paused_training.pth")

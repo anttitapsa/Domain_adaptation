@@ -33,11 +33,12 @@ class UnMaskedDataset(Dataset):
         # data loading
         # mode: 1 --> RandomCrop when using __getitem__
         #       2 --> Resized using IMAGE_SIZE when using __getitem__
+        #       3 --> returns original image
         if not os.path.isdir(img_dir):
             raise DataLoaderException(f"The first argument 'img_dir' is not a directory, it is {img_dir}")
         if type(mode) != int:
             raise DataLoaderException(f"The mode can be only int and it can be 1 or 2, it is {mode}")
-        elif mode < 1 or mode > 2:
+        elif mode < 1 or mode > 3:
             raise DataLoaderException(f"The mode can be only int and it can be 1 or 2, it is {mode}")
         self.img_dir = img_dir
         self.mode = mode
@@ -64,6 +65,8 @@ class UnMaskedDataset(Dataset):
         elif self.mode == 2:
             resize = transforms.Resize((self.IMG_SIZE, self.IMG_SIZE))
             return resize.forward(image)
+        elif self.mode == 3:
+            return image
     
 
     def __len__(self):
