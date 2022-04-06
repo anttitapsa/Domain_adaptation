@@ -148,7 +148,7 @@ class MaskedDataset(Dataset):
         image = transforms.functional.crop(image, i, j, h, w)
         mask = transforms.functional.crop(mask, i, j, h, w)
         # adds magneballs to livecell
-        image = add_fake_magnetballs(image)
+        image, mask = add_fake_magnetballs(image, mask)
         return image, mask
         
     def __len__(self):
