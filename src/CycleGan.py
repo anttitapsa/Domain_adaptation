@@ -492,5 +492,5 @@ if __name__ == '__main__':
                batch_size=batch_size,
                save_checkpoint=True,
                Resume=True,
-               Pause_path ='')
+               Pause_path ='/m/home0/u/60/aarnioa5/data/Documents/lst-project/model/cyclegan/PAUSE/paused_training.pth')
                #"/m/home/home0/09/huttuna6/data/Documents/LST_GIT/lst-project/model/CycleGan_2022-04-05/PAUSE/paused_training.pth"
