@@ -156,6 +156,8 @@ class MaskedDataset(Dataset):
             resize = transforms.Resize((self.IMG_SIZE, self.IMG_SIZE))
             image = resize.forward(image)
             mask = resize.forward(mask.unsqueeze(dim=0))
+        # adds magneballs to livecell
+        image, mask = add_fake_magnetballs(image, mask)
         return image, mask
         
     def __len__(self):
