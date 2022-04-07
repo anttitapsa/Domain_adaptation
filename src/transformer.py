@@ -1,5 +1,4 @@
 import numpy as np
-import cv2
 from PIL import Image
 import torch
 from torchvision import transforms
@@ -24,7 +23,6 @@ def add_fake_magnetballs(image, mask, min_amount = 30, max_amount = 70):
     mask_temp = torch.clone(mask).numpy()
     channels, row, col = image.shape
     number_of_pixels = random.randint(min_amount, max_amount)
-   
     for i in range(number_of_pixels): 
         r = random.choice([5,7,10,13])
         # Pick a random y coordinate
@@ -37,7 +35,7 @@ def add_fake_magnetballs(image, mask, min_amount = 30, max_amount = 70):
                 y1 = s * np.sin(i)
                 image_temp[0, y_coord+y1.astype(int),x_coord+x1.astype(int)] = 0 
                 mask_temp[y_coord+y1.astype(int),x_coord+x1.astype(int)] = 0
-    return transforms.ToTensor()(image_temp), transforms.ToTensor()(mask_temp).squeeze(0)
+    return transforms.ToTensor()(image_temp).permute(1,2,0), transforms.ToTensor()(mask_temp).squeeze(0)
 
 def resize_image_(image, size):
     resize = transforms.Resize(size)
