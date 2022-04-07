@@ -10,7 +10,7 @@ import os
 from tqdm import tqdm 
 import data_loader
 from model import Unet
-from functions import dice_loss
+from functions import dice_loss, plot_training_loss
 import numpy as np
 
 def train_loop(net,
@@ -46,9 +46,11 @@ def train_loop(net,
     print("Starting Training Loop...")
 
     # Actual training loop
+    training_loss = []
     for epoch in range(epochs):
         iters = 0
         n = 0
+        epoch_loss = []
         for i, (data_source, data_target) in tqdm(enumerate(zip(source_train_loader, target_train_loader))):
             
             # Calculate lambda decay related stuff
@@ -71,6 +73,10 @@ def train_loop(net,
                     F.softmax(masks_pred, dim=1).float(),
                     F.one_hot(source_mask.to(torch.int64), 2).permute(0, 3, 1, 2).float(),
                     multiclass=True)     # Loss function Dice loss
+            
+            # Add semantic_loss
+            epoch_loss.append(semantic_loss.item())
+            
             # Optimisation step
             optim_source.zero_grad(set_to_none=True)
             grad_scaler.scale(semantic_loss).backward()
@@ -88,9 +94,17 @@ def train_loop(net,
             optim_target.zero_grad()
             loss.backward()
             optim_target.step()    
-
+        
+        # Calculate average epoch loss
+        training_loss.append(np.mean(epoch_loss))
+        
     # Save model
     torch.save(net.state_dict(), str(os.path.join(save_dir, model_name +".pth")))
+
+    # Save training loss figure
+    plot_training_loss(loss_lst = training_loss, 
+                       folder = save_dir, 
+                       show_image = False, save_image = True, name=None)
 
 if __name__ == '__main__':
     dir_checkpoint = os.path.join(os.getcwd(), "model" )
