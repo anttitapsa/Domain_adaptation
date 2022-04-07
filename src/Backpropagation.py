@@ -17,6 +17,7 @@ def train_loop(net,
                datasets,
                device,
                epochs=5,
+               model_name = "Backpropagation",
                learning_rate=0.001,
                amp: bool = False):
 
@@ -88,12 +89,14 @@ def train_loop(net,
             loss.backward()
             optim_target.step()    
 
+    # Save model
+    torch.save(net.state_dict(), str(os.path.join(save_dir, model_name +".pth")))
 
 if __name__ == '__main__':
     dir_checkpoint = os.path.join(os.getcwd(), "model" )
     # Create data loaders
-    LC_dataset = data_loader.MaskedDataset(data_loader.LIVECELL_IMG_DIR, data_loader.LIVECELL_MASK_DIR, length=100, in_memory=False, return_domain_identifier=True)
-    Unity_dataset = data_loader.MaskedDataset(data_loader.UNITY_IMG_DIR, data_loader.UNITY_MASK_DIR, length=100, in_memory=False, return_domain_identifier=True)
+    LC_dataset = data_loader.MaskedDataset(data_loader.LIVECELL_IMG_DIR, data_loader.LIVECELL_MASK_DIR, length=None, in_memory=False, return_domain_identifier=True)
+    Unity_dataset = data_loader.MaskedDataset(data_loader.UNITY_IMG_DIR, data_loader.UNITY_MASK_DIR, length=None, in_memory=False, return_domain_identifier=True)
     datasets = [LC_dataset, Unity_dataset]
     dataset = torch.utils.data.ConcatDataset(datasets)
    
@@ -131,4 +134,5 @@ if __name__ == '__main__':
     train_loop(net=Unet(numChannels=1, classes=2, dropout = 0.1, image_res=data_loader.IMG_SIZE),
                datasets=datasets,
                device=device,
-               epochs=3)
+               epochs=3, 
+               model_name = "Backprop_3epochs")
