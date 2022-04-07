@@ -491,6 +491,6 @@ if __name__ == '__main__':
                epochs=10,
                batch_size=batch_size,
                save_checkpoint=True,
-               Resume=True,
-               Pause_path ='//home.org.aalto.fi/aarnioa5/data/Documents/lst-project/model/cyclegan/PAUSE/paused_training.pth')
+               Resume=False,
+               Pause_path ='')
                #"/m/home/home0/09/huttuna6/data/Documents/LST_GIT/lst-project/model/CycleGan_2022-04-05/PAUSE/paused_training.pth"
