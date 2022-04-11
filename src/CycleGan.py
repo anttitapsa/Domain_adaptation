@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
+from torchvision import transforms
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -266,6 +267,7 @@ def train_loop(models,
     print("Starting Training Loop...")
 
     # Actual training loop
+    resize = transforms.Resize((64, 64))
     try:
         for epoch in range(epochs- start_epoch):
             iters = 0
@@ -281,8 +283,8 @@ def train_loop(models,
 
                         
                     # Set model input
-                    a_real = data_source[0].to(device)
-                    b_real = data_target.to(device)
+                    a_real = resize.forward(data_source[0]).to(device)
+                    b_real = resize.forward(data_target).to(device)
 
                     # Generate images
                     b_fake = G_A2B(a_real)
@@ -444,7 +446,7 @@ if __name__ == '__main__':
     dir_checkpoint = os.path.join(os.getcwd(), "model" )
 
     # Create data loaders
-    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False, IMG_SIZE=64, mode=2)
+    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=2)
     #Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
     #datasets = [LC_dataset, Unity_dataset]
     #dataset = torch.utils.data.ConcatDataset(datasets)
@@ -464,7 +466,7 @@ if __name__ == '__main__':
     source_train_loader = DataLoader(train_set, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True, drop_last=True) # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
     # source_val_loader = DataLoader(test_set, shuffle=True, drop_last=True, **loader_args)
 
-    Target_dataset = UnMaskedDataset(TARGET_DATA_DIR, mode=2, IMG_SIZE=64)
+    Target_dataset = UnMaskedDataset(TARGET_DATA_DIR, mode=1, IMG_SIZE=256)
 
     target_test_percent = 0.01
     n_test_target = int(len(Target_dataset) * target_test_percent)
@@ -496,7 +498,7 @@ if __name__ == '__main__':
     train_loop(models=models,
                datasets=datasets,
                device=device,
-               model_name="test_resize",
+               model_name="256_resized_to_64",
                epochs=10,
                batch_size=batch_size,
                save_checkpoint=True,
