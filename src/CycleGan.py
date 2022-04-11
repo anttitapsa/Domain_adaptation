@@ -255,8 +255,10 @@ def train_loop(models,
             saver = checkpoint_saver.Checkpoint_saver(epoch=0, model=models, optimizer=optimizers, checkpoint_dir=save_dir, tb_dir=log_dir, losses=[G_losses, D_A_losses, D_B_losses])
 
     
-    data = enumerate(zip(source_train_loader, target_train_loader), 0)
-    total = len(list(data))
+    #data = enumerate(zip(source_train_loader, target_train_loader), 0)
+    #total = len(list(data))
+
+    total = len(source_train_loader)
     
     log = logger("CycleGan", save_dir, ["D_A losses", "D_B losses", "G losses"])
     log.start(epochs=epochs, batch_size=batch_size,  learning_rate=learning_rate, n_train=total, device=device) 
@@ -267,10 +269,17 @@ def train_loop(models,
     try:
         for epoch in range(epochs- start_epoch):
             iters = 0
+            target_iter = iter(target_train_loader)
 
             with tqdm(total=total, desc=f'Epoch {epoch + 1 + start_epoch}/{epochs}', unit='img') as pbar:
-                for i, (data_source, data_target) in enumerate(zip(source_train_loader, target_train_loader), 0):
-                    
+                for data_source in source_train_loader:
+                    try:
+                        data_target = next(target_iter)
+                    except StopIteration:
+                        target_iter = iter(target_train_loader)
+                        data_target = next(target_iter)
+
+                        
                     # Set model input
                     a_real = data_source[0].to(device)
                     b_real = data_target.to(device)
@@ -488,7 +497,7 @@ if __name__ == '__main__':
                datasets=datasets,
                device=device,
                model_name="test_resize",
-               epochs=10,
+               epochs=500,
                batch_size=batch_size,
                save_checkpoint=True,
                Resume=True,
