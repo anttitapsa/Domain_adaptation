@@ -1,6 +1,10 @@
 # Add neural networks related functions, e.g forward, backward functions, training function?
 import torch
 from torch import Tensor
+import matplotlib.pyplot as plt 
+from datetime import datetime
+import os 
+
 # Training example layout -- Code from Pytorch tutorial
 '''
 def train(dataloader, model, loss_fn, optimizer):
@@ -59,3 +63,34 @@ def dice_loss(input: Tensor, target: Tensor, multiclass: bool = False):
     assert input.size() == target.size()
     fn = multiclass_dice_coeff if multiclass else dice_coeff
     return 1 - fn(input, target, reduce_batch_first=True)
+
+def plot_training_loss(loss_lst, folder, show_image = False, save_image = True, name=None):
+    ''' Function that plots training loss and saves the image by default
+    loss_lst : list
+        List of average training loss per epoch
+    folder : str
+        Path of diroctory where the plot will be saved
+    show_image : boolean
+        Show figure after plotting
+    save_image : boolean
+        Boolean value for image saving
+    name : str
+        Name for the plot
+    '''
+    epochs = list(range(len(loss_lst)))
+    plt.plot(epochs, loss_lst)
+    
+    if not name:
+        name = "Model trained at " + datetime.now().strftime("%d-%m-%Y %H-%M-%S")
+    plt.title(name)
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    
+    if show_image:
+        plt.show()
+
+    if save_image:
+        if not os.path.exists(str(folder)):
+            os.mkdir(str(folder))
+        plt.savefig(str(os.path.join(folder, name.replace(" ", "_"))))
+        

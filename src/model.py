@@ -18,10 +18,19 @@ class Unet(Module):
     # classes: number of labels
     # dropout: During training, randomly zeroes some of the elements of the input tensor with probability 
     # dropout to prevent overtraining
-    def __init__(self, numChannels = 1, classes = 2, dropout = 0.1, image_res=512):
+    def __init__(self, numChannels = 1, classes = 2, dropout = 0.1, image_res=512, domain_classifier_level=0):
         super(Unet, self).__init__()
         
-        self.domain_classifier = domain_classifier(in_channel=int((image_res//16)**2*1024))
+        # Domain Classifier
+        assert domain_classifier_level >= 0 and domain_classifier_level <= 4, "Domain classifier has five levels and takes values 0 - 4."
+        domain_classifier_dimensions = [
+            int((image_res//16)**2*1024),
+            int((image_res//8)**2*512),
+            int((image_res//4)**2*256),
+            int((image_res//2)**2*128),
+            int((image_res//1)**2*64)]
+        self.domain_classifier = domain_classifier(in_channel=domain_classifier_dimensions[domain_classifier_level])
+        self.domain_classifier_level = domain_classifier_level
         
         # Encoder (traditional convolutional and max pooling layers)
         self.conv1 = Unet._conv2d_block(in_channel = numChannels, out_channel = 64)
@@ -82,8 +91,6 @@ class Unet(Module):
         x = self.dropout4(x)
         
         x5 = self.conv5(x)
-        x_dom = torch.flatten(x5, start_dim=1) 
-        y = self.domain_classifier(x_dom, lamd)
         
         x6 = self.transpose6(x5)
         x = cat((x6, x4), dim = 1)
@@ -106,6 +113,11 @@ class Unet(Module):
         x = self.conv9(x)
         
         x = self.outc(x)
+
+        x_dom_list = [x5, x6, x7, x8, x9]
+        x_dom = torch.flatten(x_dom_list[self.domain_classifier_level], start_dim=1) 
+        y = self.domain_classifier(x_dom, lamd)
+        
         return (torch.sigmoid(x), y)
 
     @staticmethod
