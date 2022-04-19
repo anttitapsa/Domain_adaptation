@@ -8,7 +8,7 @@ from torchvision.io import read_image
 import os
 import numpy as np
 from tqdm import tqdm
-
+import transformer
 
 if os.path.basename(os.getcwd()) != "lst-project":
     raise Exception(f"You are in {os.getcwd()}, please move into root directory lst-project.")
@@ -21,7 +21,7 @@ LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
 UNITY_IMG_DIR = os.path.join(DATA_DIR, "unity_data", "images")
 UNITY_MASK_DIR = os.path.join(DATA_DIR, "unity_data", "masks")
 dir_checkpoint = os.path.join(os.getcwd(), "model" )
-IMG_SIZE = 512
+IMG_SIZE = 256
 DOMAIN_MAP = {
     "livecell": 0,
     "target": 1,
@@ -79,8 +79,8 @@ class UnMaskedDataset(Dataset):
             else: return image  # No mask --> None
         elif self.mode == 2:
             resize = transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=Image.NEAREST)
-            if self.return_domain_identifier: return image, self.domain_identifier
-            else: return image  # No mask --> None
+            if self.return_domain_identifier: return resize.forward(image), self.domain_identifier
+            else: return resize.forward(image)  # No mask --> None
     
 
     def __len__(self):
@@ -172,7 +172,8 @@ class MaskedDataset(Dataset):
             output_size=(IMG_SIZE, IMG_SIZE))
         image = transforms.functional.crop(image, i, j, h, w)
         mask = transforms.functional.crop(mask, i, j, h, w)
-        
+        # adds magneballs to livecell
+        image, mask = transformer.add_fake_magnetballs(image, mask)
         if self.return_domain_identifier:
             return image, mask, self.domain_identifier
         return image, mask
