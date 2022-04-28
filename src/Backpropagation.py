@@ -10,7 +10,7 @@ import os
 from tqdm import tqdm 
 import data_loader
 from model import Unet
-from functions import dice_loss, plot_training_loss
+from functions import dice_loss, plot_training_loss, evaluate_model, save_losses
 import numpy as np
 
 def train_loop(net,
@@ -31,9 +31,9 @@ def train_loop(net,
         save_dir = os.path.join(dir_checkpoint, f'BackProp_{model_number}_{datetime.now().date()}')
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
-
-    source_train_loader, target_train_loader = datasets
-
+    # Get data loaders
+    source_train_loader, target_train_loader, test_loader = datasets
+    
     # Set up loss
     criterion = nn.BCELoss()
 
@@ -46,11 +46,11 @@ def train_loop(net,
     print("Starting Training Loop...")
 
     # Actual training loop
-    training_loss = []
+    loss_array = np.zeros((4, epochs))
     for epoch in range(epochs):
         iters = 0
         n = 0
-        epoch_loss = []
+        loss_training_se = []; loss_training_di = []
         for i, (data_source, data_target) in tqdm(enumerate(zip(source_train_loader, target_train_loader))):
             
             # Calculate lambda decay related stuff
@@ -72,10 +72,10 @@ def train_loop(net,
                 semantic_loss = dice_loss(
                     F.softmax(masks_pred, dim=1).float(),
                     F.one_hot(source_mask.to(torch.int64), 2).permute(0, 3, 1, 2).float(),
-                    multiclass=True)     # Loss function Dice loss
+                    multiclass=False)     # Loss function Dice loss
             
             # Add semantic_loss
-            epoch_loss.append(semantic_loss.item())
+            loss_training_se.append(semantic_loss.item())
             
             # Optimisation step
             optim_source.zero_grad(set_to_none=True)
@@ -83,34 +83,44 @@ def train_loop(net,
             grad_scaler.step(optim_source)
             grad_scaler.update()
             
-            
-            # Teach with target encoder + grl
-            
+            # Calculate BCE loss
             masks_pred, domain_label = net(mix_data, lambd)
-            #print('domain_label', domain_label)
-            #print('true_domain_labels', true_domain_labels)
-            loss = criterion(domain_label.flatten(), true_domain_labels)
+            disc_loss = criterion(domain_label.flatten(), true_domain_labels)
+            loss_training_di.append(disc_loss.item())
+            
             # Optimisation step
             optim_target.zero_grad()
-            loss.backward()
+            disc_loss.backward()
             optim_target.step()    
         
-        # Calculate average epoch loss
-        training_loss.append(np.mean(epoch_loss))
+        # Calculate eval losses
+        loss_eval_se, loss_eval_di = evaluate_model(model=net, dataloader=test_loader, device=device)
+        
+        # Add epoc losses to array
+        loss_array[:, epoch] = (np.mean(loss_training_se), np.mean(loss_training_di), loss_eval_se, loss_eval_di)
         
     # Save model
     torch.save(net.state_dict(), str(os.path.join(save_dir, model_name +".pth")))
-
+    
     # Save training loss figure
-    plot_training_loss(loss_lst = training_loss, 
+    plot_training_loss(losses = loss_array,
+                       labels = ["Training dice", "Training BCE", "Evaluation dice", "Evaluation BCE"], 
                        folder = save_dir, 
                        show_image = False, save_image = True, name=None)
+    
+    # Save losses into text file
+    save_losses(losses = loss_array, 
+                labels = ["Training dice", "Training BCE", "Evaluation dice", "Evaluation BCE"], 
+                folder = save_dir, 
+                name='losses.txt')
 
 if __name__ == '__main__':
     dir_checkpoint = os.path.join(os.getcwd(), "model" )
     # Create data loaders
     LC_dataset = data_loader.MaskedDataset(data_loader.LIVECELL_IMG_DIR, data_loader.LIVECELL_MASK_DIR, length=None, in_memory=False, return_domain_identifier=True)
     Unity_dataset = data_loader.MaskedDataset(data_loader.UNITY_IMG_DIR, data_loader.UNITY_MASK_DIR, length=None, in_memory=False, return_domain_identifier=True)
+    test_dataset = data_loader.MaskedDataset(data_loader.TEST_IMG_DIR, data_loader.TEST_MASK_DIR, length=None, in_memory=False, return_domain_identifier=False)
+    
     datasets = [LC_dataset, Unity_dataset]
     dataset = torch.utils.data.ConcatDataset(datasets)
    
@@ -121,7 +131,7 @@ if __name__ == '__main__':
     n_test = int(len(dataset) * test_percent)
     n_train = len(dataset) - n_test
 
-    train_set, test_set = torch.utils.data.random_split(dataset, [n_train, n_test], generator=torch.Generator().manual_seed(seed))
+    # train_set, test_set = torch.utils.data.random_split(dataset, [n_train, n_test], generator=torch.Generator().manual_seed(seed))
 
     batch_size = 2
 
@@ -131,7 +141,7 @@ if __name__ == '__main__':
 
     target_dataset = data_loader.UnMaskedDataset(data_loader.TARGET_DATA_DIR, mode=1, return_domain_identifier=True)
 
-    target_test_percent = 0.01
+    target_test_percent = 0 #0.01
     n_test_target = int(len(target_dataset) * target_test_percent)
     n_train_target = len(target_dataset) - n_test_target
     target_train_set, target_test_set = torch.utils.data.random_split(target_dataset, [n_train_target, n_test_target],
@@ -140,10 +150,14 @@ if __name__ == '__main__':
     target_train_loader = DataLoader(target_train_set, shuffle=True, batch_size=batch_size, num_workers=4,
                                      pin_memory=True)
 
+    # Test set loader
+    test_loader = DataLoader(test_dataset, shuffle=True, batch_size=batch_size, num_workers=4,
+                             pin_memory=True)
+
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    datasets = (source_train_loader, target_train_loader)
+    datasets = (source_train_loader, target_train_loader, test_loader)
     
     train_loop(net=Unet(numChannels=1, classes=2, dropout = 0.1, image_res=data_loader.IMG_SIZE),
                datasets=datasets,
