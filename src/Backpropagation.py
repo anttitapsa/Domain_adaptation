@@ -101,7 +101,7 @@ def train_loop(net,
         
     # Save model
     torch.save(net.state_dict(), str(os.path.join(save_dir, model_name +".pth")))
-    
+
     # Save training loss figure
     plot_training_loss(losses = loss_array,
                        labels = ["Training dice", "Training BCE", "Evaluation dice", "Evaluation BCE"], 
@@ -115,30 +115,34 @@ def train_loop(net,
                 name='losses.txt')
 
 if __name__ == '__main__':
+    # Hyperparameters
+    epochs = 3
+    batch_size = 8
+    learning_rate=0.001
+    
     dir_checkpoint = os.path.join(os.getcwd(), "model" )
     # Create data loaders
     LC_dataset = data_loader.MaskedDataset(data_loader.LIVECELL_IMG_DIR, data_loader.LIVECELL_MASK_DIR, length=None, in_memory=False, return_domain_identifier=True)
-    Unity_dataset = data_loader.MaskedDataset(data_loader.UNITY_IMG_DIR, data_loader.UNITY_MASK_DIR, length=None, in_memory=False, return_domain_identifier=True)
     test_dataset = data_loader.MaskedDataset(data_loader.TEST_IMG_DIR, data_loader.TEST_MASK_DIR, length=None, in_memory=False, return_domain_identifier=False)
-    
+    '''
+    # Mixed data
+    Unity_dataset = data_loader.MaskedDataset(data_loader.UNITY_IMG_DIR, data_loader.UNITY_MASK_DIR, length=None, in_memory=False, return_domain_identifier=True)
     datasets = [LC_dataset, Unity_dataset]
     dataset = torch.utils.data.ConcatDataset(datasets)
+    '''
+    # Only Livecell
+    dataset = LC_dataset
    
     train_set = dataset
-    
     seed = 123
     test_percent = 0.001
     n_test = int(len(dataset) * test_percent)
     n_train = len(dataset) - n_test
 
     # train_set, test_set = torch.utils.data.random_split(dataset, [n_train, n_test], generator=torch.Generator().manual_seed(seed))
-
-    batch_size = 2
-
      
     source_train_loader = DataLoader(train_set, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True) # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
     # source_val_loader = DataLoader(test_set, shuffle=True, drop_last=True, **loader_args)
-
     target_dataset = data_loader.UnMaskedDataset(data_loader.TARGET_DATA_DIR, mode=1, return_domain_identifier=True)
 
     target_test_percent = 0 #0.01
@@ -162,5 +166,6 @@ if __name__ == '__main__':
     train_loop(net=Unet(numChannels=1, classes=2, dropout = 0.1, image_res=data_loader.IMG_SIZE),
                datasets=datasets,
                device=device,
-               epochs=3, 
-               model_name = "Backprop_3epochs")
+               epochs=epochs,
+               learning_rate=learning_rate,
+               model_name = "Backprop_10epochs")
