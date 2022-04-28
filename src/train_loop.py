@@ -166,7 +166,8 @@ if __name__ == '__main__':
     # Create datasets
     LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False)
     Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
-    datasets = [LC_dataset, Unity_dataset]
+    LC_empty_dataset = EmptyLiveCELLDataset(3 * len(LC_dataset))
+    datasets = [LC_dataset, LC_empty_dataset]  # 75% empty, 25% actual LiveCELL images
     dataset = torch.utils.data.ConcatDataset(datasets)
     
     seed = 123

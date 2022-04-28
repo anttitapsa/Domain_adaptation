@@ -17,6 +17,8 @@ DATA_DIR = os.path.join(os.getcwd(), "data")
 TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
 LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
 LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
+LIVECELL_GREY = 128
+LIVECELL_DIMS = (704, 520)
 
 
 class DataLoaderException(Exception):
@@ -163,3 +165,38 @@ class MaskedDataset(Dataset):
         if self.length:
             return self.length
         return len(os.listdir(self.img_dir))        
+
+
+class EmptyLiveCELLDataset(Dataset):
+
+    def __init__(self, length, IMG_SIZE=512, mode=1):
+        self.img = Image.new(mode="L", size=LIVECELL_DIMS, color=LIVECELL_GREY)
+        self.mask = np.zeros(LIVECELL_DIMS)
+        self.length = length
+        self.IMG_SIZE = IMG_SIZE
+        self.mode = mode
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, item):
+        """
+        Always returns the same image because all the images in this "dataset" are the same
+        """
+        self.img = transforms.ToTensor()(self.img)
+        self.mask = torch.from_numpy(self.mask)
+
+        if self.mode == 1:
+            i, j, h, w = transforms.RandomCrop.get_params(
+                self.img,
+                output_size=(self.IMG_SIZE, self.IMG_SIZE))
+            self.img = transforms.functional.crop(self.img, i, j, h, w)
+            self.mask = transforms.functional.crop(self.mask, i, j, h, w)
+        if self.mode == 2:
+            resize = transforms.Resize((self.IMG_SIZE, self.IMG_SIZE))
+            self.img = resize.forward(self.img)
+            self.mask = resize.forward(self.mask.unsqueeze(dim=0))
+        # adds magnet balls to livecell
+        # self.img, self.mask = add_fake_magnetballs(self.img, self.mask)
+
+        return self.img, self.mask
