@@ -150,7 +150,7 @@ if __name__ == '__main__':
 
     datasets = (source_train_loader, target_train_loader)
     
-    train_loop(net=Unet(numChannels=1, classes=2, dropout = 0.1, image_res=data_loader.IMG_SIZE),
+    train_loop(net=Unet(numChannels=1, classes=2, dropout = 0.1, image_res=data_loader.IMG_SIZE, domain_classifier_level=0),
                datasets=datasets,
                device=device,
                epochs=epochs,
