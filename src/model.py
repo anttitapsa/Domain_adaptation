@@ -23,13 +23,15 @@ class Unet(Module):
         
         # Domain Classifier
         assert domain_classifier_level >= 0 and domain_classifier_level <= 4, "Domain classifier has five levels and takes values 0 - 4."
+        '''
         domain_classifier_dimensions = [
             int((image_res//16)**2*1024),
             int((image_res//8)**2*512),
             int((image_res//4)**2*256),
             int((image_res//2)**2*128),
             int((image_res//1)**2*64)]
-        self.domain_classifier = domain_classifier(in_channel=domain_classifier_dimensions[domain_classifier_level])
+        '''
+        self.domain_classifier = domain_classifier(in_channel=int((image_res//16)**2*1024), level = domain_classifier_level, dropout = dropout, classes=classes)
         self.domain_classifier_level = domain_classifier_level
         
         # Encoder (traditional convolutional and max pooling layers)
@@ -115,8 +117,9 @@ class Unet(Module):
         x = self.outc(x)
 
         x_dom_list = [x5, x6, x7, x8, x9]
+        x_shape = x_dom_list[self.domain_classifier_level].shape
         x_dom = torch.flatten(x_dom_list[self.domain_classifier_level], start_dim=1) 
-        y = self.domain_classifier(x_dom, lamd)
+        y = self.domain_classifier(x_dom, lamd, x_shape)
         
         return (torch.sigmoid(x), y)
 
@@ -132,17 +135,47 @@ class Unet(Module):
         )
    
 class domain_classifier(nn.Module):
-    def __init__(self, in_channel):
+    def __init__(self, in_channel, level, dropout, classes):
         super(domain_classifier, self).__init__()
         self.fc1 = nn.Linear(in_channel, 100) 
         self.fc2 = nn.Linear(100, 1)
         self.drop = nn.Dropout2d(0.25)
-
-    def forward(self, x, lamd):
+        
+        # Drop to lowest res
+        channel_lst = [1024, 512, 256, 128, 64, classes]
+        modules = nn.ModuleList()
+        #modules.append(nn.Identity()) # Is there need to add something?
+        for i in range(1, level+1):
+            modules.append(domain_classifier._conv2d_block(in_channel = channel_lst[level-i+1], out_channel = channel_lst[level-i]))
+            modules.append(MaxPool2d(kernel_size = 2, stride = 2))
+            modules.append(Dropout(dropout))
+        self.conv_block = modules   
+        
+    def forward(self, x, lamd, x_shape):
+        # First grad reverse
         x = grad_reverse(x, lamd)
+        # Drop to lowest resolution
+        x = torch.reshape(x, x_shape)
+        for modu in self.conv_block:
+            x = modu(x)
+        #print("After conv ", x.shape)
+        # Two fully connected layers
+        x = torch.flatten(x, start_dim=1)
+        #print("After flatten ", x.shape)
         x = F.leaky_relu(self.drop(self.fc1(x)))
         x = self.fc2(x)
         return torch.sigmoid(x)
+    
+    @staticmethod
+    def _conv2d_block(in_channel, out_channel):
+        return torch.nn.Sequential(
+            Conv2d(in_channels = in_channel, out_channels = out_channel, kernel_size = 3, padding = 1),
+            BatchNorm2d(num_features = out_channel),
+            ReLU(inplace = True),
+            Conv2d(in_channels = out_channel, out_channels = out_channel, kernel_size = 3, padding = 1),
+            BatchNorm2d(num_features = out_channel),
+            ReLU(inplace = True)
+        )
       
 # Code from https://discuss.pytorch.org/t/solved-reverse-gradients-in-backward-pass/3589/17
 class GradReverse(torch.autograd.Function):
