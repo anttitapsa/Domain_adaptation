@@ -30,12 +30,15 @@ def add_fake_magnetballs(image, mask, min_amount = 30, max_amount = 70):
         y_coord=random.randint(r, row - 1 - r)
         # Pick a random x coordinate
         x_coord=random.randint(r, col - 1 - r)
+        # Pick color randomly, not always as black
+        black_col = np.random.uniform(0,0.2,1)[0]
         for s in range(r):
             for i in range(0,360,1):
                 x1 = s * np.cos(i)
                 y1 = s * np.sin(i)
-                image_temp[0, y_coord+y1.astype(int),x_coord+x1.astype(int)] = 0 
-                mask_temp[y_coord+y1.astype(int),x_coord+x1.astype(int)] = 0
+                #print('Before',image_temp[0, y_coord+y1.astype(int),x_coord+x1.astype(int)])
+                image_temp[0, y_coord+y1.astype(int),x_coord+x1.astype(int)] = black_col
+                mask_temp[y_coord+y1.astype(int),x_coord+x1.astype(int)] = black_col
     return transforms.ToTensor()(image_temp).permute(1,2,0), transforms.ToTensor()(mask_temp).squeeze(0)
 
 def resize_image_(image, size):
