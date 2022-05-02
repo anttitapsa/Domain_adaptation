@@ -96,7 +96,7 @@ class MaskedDataset(Dataset):
     img_dir: The directory containing ONLY images used foor this data set
     mask_dir: The directory containing ONLY masks of images in the same order as the images are found in img_dir
     """
-    def __init__(self, img_dir, mask_path, length=None, in_memory=False, return_domain_identifier=False):
+    def __init__(self, img_dir, mask_path, length=None, in_memory=False, return_domain_identifier=False, augmented=True):
         if not os.path.isdir(img_dir):
             raise DataLoaderException(f"The first argument 'img_dir' is not a directory, it is {img_dir}")
         if not os.path.isdir(mask_path):
@@ -108,6 +108,7 @@ class MaskedDataset(Dataset):
         self.images = {}
         self.length = length
         self.in_memory = in_memory  # If true, read whole dataset into memory on initialization.
+        self.augmented = augmented
         iter_count = length if length else len(os.listdir(img_dir))
         self.return_domain_identifier = return_domain_identifier
         if return_domain_identifier:
@@ -176,9 +177,8 @@ class MaskedDataset(Dataset):
         image = transforms.functional.crop(image, i, j, h, w)
         mask = transforms.functional.crop(mask, i, j, h, w)
         # adds magneballs to livecell
-        image, mask = transformer.add_fake_magnetballs(image, mask)
-        if self.return_domain_identifier:
-            return image, mask, self.domain_identifier
+        if self.augmented: image, mask = transformer.add_fake_magnetballs(image, mask)
+        if self.return_domain_identifier: return image, mask, self.domain_identifier
         return image, mask
         
     def __len__(self):

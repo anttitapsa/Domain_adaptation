@@ -116,17 +116,17 @@ def train_loop(net,
 
 if __name__ == '__main__':
     # Hyperparameters
-    epochs = 3
+    epochs = 10
     batch_size = 8
     learning_rate=0.001
     
     dir_checkpoint = os.path.join(os.getcwd(), "model" )
     # Create data loaders
-    LC_dataset = data_loader.MaskedDataset(data_loader.LIVECELL_IMG_DIR, data_loader.LIVECELL_MASK_DIR, length=None, in_memory=False, return_domain_identifier=True)
+    LC_dataset = data_loader.MaskedDataset(data_loader.LIVECELL_IMG_DIR, data_loader.LIVECELL_MASK_DIR, length=None, in_memory=False, return_domain_identifier=True, augmented=True)
     test_dataset = data_loader.MaskedDataset(data_loader.TEST_IMG_DIR, data_loader.TEST_MASK_DIR, length=None, in_memory=False, return_domain_identifier=False)
     '''
     # Mixed data
-    Unity_dataset = data_loader.MaskedDataset(data_loader.UNITY_IMG_DIR, data_loader.UNITY_MASK_DIR, length=None, in_memory=False, return_domain_identifier=True)
+    Unity_dataset = data_loader.MaskedDataset(data_loader.UNITY_IMG_DIR, data_loader.UNITY_MASK_DIR, length=None, in_memory=False, return_domain_identifier=True, augmented=False)
     datasets = [LC_dataset, Unity_dataset]
     dataset = torch.utils.data.ConcatDataset(datasets)
     '''
