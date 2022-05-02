@@ -22,13 +22,16 @@ def imshow_on_top_of_each_other(imgs):
     plt.show()
 
 
-def imshow_side_by_side_model(idx, dataset, model, backprop = False):
+def imshow_side_by_side_model(idx, dataset, model, backprop = False, target = False):
     # Disable grad
     with torch.no_grad():
-        image, mask = dataset[idx]
+        if target: image = dataset[idx]
+        else: image, mask = dataset[idx]
         if backprop:
             prediction, dom_lab = model(torch.unsqueeze(image, dim=0), 1)
             print('Domain label', dom_lab)
         else: prediction = model(torch.unsqueeze(image, dim=0))
         prediction = torch.squeeze(prediction, dim=0)
-        imshow_side_by_side([image, mask, prediction])
+        if target: imshow_side_by_side([image, prediction])
+        else: imshow_side_by_side([image, mask, prediction])
+        
