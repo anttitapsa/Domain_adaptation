@@ -14,7 +14,7 @@ import random
 import os
 import sys
 from tqdm import tqdm 
-from data_loader import MaskedDataset, UnMaskedDataset
+from data_loader import MaskedDataset, UnMaskedDataset, EmptyLiveCELLDataset
 from logger import logger
 import checkpoint_saver
 
@@ -450,7 +450,9 @@ if __name__ == '__main__':
     #Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
     #datasets = [LC_dataset, Unity_dataset]
     #dataset = torch.utils.data.ConcatDataset(datasets)
-    dataset = LC_dataset
+    LC_empty_dataset = EmptyLiveCELLDataset(3 * len(LC_dataset))
+    datasets = [LC_dataset, LC_empty_dataset]  # 75% empty, 25% actual LiveCELL images
+    dataset = torch.utils.data.ConcatDataset(datasets)
     train_set = dataset
     
     seed = 123
