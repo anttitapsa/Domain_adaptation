@@ -4,7 +4,6 @@ import torch
 from torchvision import transforms
 # python -m pip install -U scikit-image
 from skimage.util import random_noise
-from data_loader import MaskedDataset, UnMaskedDataset
 import random
 # function adds noise to tensors (and flips them)
 def add_noise_to_images(image, amount = 0.05):
