@@ -498,7 +498,7 @@ if __name__ == '__main__':
     train_loop(models=models,
                datasets=datasets,
                device=device,
-               model_name="256_resized_to_64",
+               model_name="epty_images",
                epochs=10,
                batch_size=batch_size,
                save_checkpoint=True,
