@@ -9,7 +9,7 @@ import random
 import os
 from tqdm import tqdm 
 import data_loader
-from model import Unet
+from model import Unet, UNET_domainclassifier
 from functions import dice_loss, plot_training_loss, evaluate_model, save_losses
 import numpy as np
 
@@ -48,7 +48,6 @@ def train_loop(net,
     # Actual training loop
     loss_array = np.zeros((4, epochs))
     for epoch in range(epochs):
-        iters = 0
         n = 0
         loss_training_se = []; loss_training_di = []
         for i, (data_source, data_target) in tqdm(enumerate(zip(source_train_loader, target_train_loader))):
@@ -71,7 +70,7 @@ def train_loop(net,
                 masks_pred, domain_label = net(source_im, lambd)
                 semantic_loss = dice_loss(
                     F.softmax(masks_pred, dim=1).float(),
-                    F.one_hot(source_mask.to(torch.int64), 2).permute(0, 3, 1, 2).float(),
+                    torch.unsqueeze(source_mask, dim=1).float(),
                     multiclass=False)     # Loss function Dice loss
             
             # Add semantic_loss
@@ -93,11 +92,13 @@ def train_loop(net,
             disc_loss.backward()
             optim_target.step()    
         
+        '''
         # Calculate eval losses
         loss_eval_se, loss_eval_di = evaluate_model(model=net, dataloader=test_loader, device=device)
         
         # Add epoc losses to array
         loss_array[:, epoch] = (np.mean(loss_training_se), np.mean(loss_training_di), loss_eval_se, loss_eval_di)
+        '''
         
     # Save model
     torch.save(net.state_dict(), str(os.path.join(save_dir, model_name +".pth")))
@@ -163,7 +164,7 @@ if __name__ == '__main__':
 
     datasets = (source_train_loader, target_train_loader, test_loader)
     
-    train_loop(net=Unet(numChannels=1, classes=2, dropout = 0.1, image_res=data_loader.IMG_SIZE, domain_classifier_level=0),
+    train_loop(net=UNET_domainclassifier(numChannels=1, classes=1, dropout = 0.1, image_res=data_loader.IMG_SIZE, domain_classifier_level=0),
                datasets=datasets,
                device=device,
                epochs=epochs,
