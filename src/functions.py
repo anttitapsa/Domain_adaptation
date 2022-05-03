@@ -172,4 +172,28 @@ def evaluate_model(model, dataloader, device):
     
     return np.mean(dice_losses), np.mean(disc_losses)
 
+def evaluate_basic_UNet(model, dataloader, device):
+    '''Function that is used to evaluate vanilla UNet
+    model : class Unet
+        Trained network model
+    dataloader : class DataLoader
+        Contains data used for evaluating the model
+    device : str
+        Determines where calculatios are made: CPU or Cuda.
+    '''
+    model.eval()
+    semantic_losses = []
+    for images, masks in tqdm(dataloader, total=len(dataloader), desc='Validation round', unit='batch', leave=False):
+        images = images.to(device)
+        masks = masks.to(device)
+        
+        with torch.no_grad():
+            mask_pred = model(images)
+            semantic_loss = dice_loss(F.softmax(mask_pred, dim=1).float(),
+                                      torch.unsqueeze(masks, dim=1).float())
+            semantic_losses.append(semantic_loss.item())        
+    model.train()
+    
+    return np.mean(semantic_losses)
+
     
