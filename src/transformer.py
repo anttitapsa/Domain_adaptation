@@ -4,6 +4,7 @@ import torch
 from torchvision import transforms
 # python -m pip install -U scikit-image
 from skimage.util import random_noise
+from data_loader import MaskedDataset, UnMaskedDataset
 import random
 # function adds noise to tensors (and flips them)
 def add_noise_to_images(image, amount = 0.05):
@@ -36,6 +37,14 @@ def add_fake_magnetballs(image, mask, min_amount = 30, max_amount = 70):
                 image_temp[0, y_coord+y1.astype(int),x_coord+x1.astype(int)] = 0 
                 mask_temp[y_coord+y1.astype(int),x_coord+x1.astype(int)] = 0
     return transforms.ToTensor()(image_temp).permute(1,2,0), transforms.ToTensor()(mask_temp).squeeze(0)
+
+def fake_magnetball_livecell(dataset, min_amount = 30, max_amount = 70):
+    new_dataset = dataset.copy()
+    i = 0
+    for data in dataset:
+        new_dataset[i] = add_fake_magnetballs(data[0], data[1], min_amount, max_amount)
+        i += 1
+    return new_dataset
 
 def resize_image_(image, size):
     resize = transforms.Resize(size)
