@@ -4,11 +4,11 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 import torch
 from torchvision import transforms
-from torchvision.io import read_image
+#from torchvision.io import read_image
 import os
 import numpy as np
 from tqdm import tqdm
-from transformer import add_fake_magnetballs
+#from transformer import add_fake_magnetballs
 if os.path.basename(os.getcwd()) != "lst-project":
     raise Exception(f"You are in {os.getcwd()}, please move into root directory lst-project.")
 
