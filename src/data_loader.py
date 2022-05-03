@@ -183,18 +183,19 @@ class EmptyLiveCELLDataset(Dataset):
         """
         Always returns the same image because all the images in this "dataset" are the same
         """
-
+        img = self.img
+        mask = self.mask
         if self.mode == 1:
             i, j, h, w = transforms.RandomCrop.get_params(
-                self.img,
+                img,
                 output_size=(self.IMG_SIZE, self.IMG_SIZE))
-            self.img = transforms.functional.crop(self.img, i, j, h, w)
-            self.mask = transforms.functional.crop(self.mask, i, j, h, w)
+            img = transforms.functional.crop(img, i, j, h, w)
+            mask = transforms.functional.crop(mask, i, j, h, w)
         if self.mode == 2:
             resize = transforms.Resize((self.IMG_SIZE, self.IMG_SIZE))
-            self.img = resize.forward(self.img)
-            self.mask = resize.forward(self.mask.unsqueeze(dim=0))
+            img = resize.forward(img)
+            mask = resize.forward(mask.unsqueeze(dim=0))
         # adds magnet balls to livecell
         # self.img, self.mask = add_fake_magnetballs(self.img, self.mask)
 
-        return self.img, self.mask
+        return img, mask
