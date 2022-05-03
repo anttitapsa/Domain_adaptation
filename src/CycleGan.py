@@ -451,8 +451,8 @@ if __name__ == '__main__':
     #datasets = [LC_dataset, Unity_dataset]
     #dataset = torch.utils.data.ConcatDataset(datasets)
     LC_empty_dataset = EmptyLiveCELLDataset(3 * len(LC_dataset))
-    datasets = [LC_dataset, LC_empty_dataset]  # 75% empty, 25% actual LiveCELL images
-    dataset = torch.utils.data.ConcatDataset(datasets)
+    LC_datasets = [LC_dataset, LC_empty_dataset]  # 75% empty, 25% actual LiveCELL images
+    dataset = torch.utils.data.ConcatDataset(LC_datasets)
     train_set = dataset
     
     seed = 123
