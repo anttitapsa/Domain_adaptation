@@ -181,8 +181,12 @@ class EmptyLiveCELLDataset(Dataset):
         """
         Always returns the same image because all the images in this "dataset" are the same
         """
+
+        if not 0 <= item < self.length:
+            raise DataLoaderException(f"Nope")
         img = transforms.ToTensor()(Image.new(mode="L", size=LIVECELL_DIMS, color=LIVECELL_GREY))
         mask = torch.from_numpy(np.zeros(LIVECELL_DIMS))
+
         if self.mode == 1:
             i, j, h, w = transforms.RandomCrop.get_params(
                 img,
