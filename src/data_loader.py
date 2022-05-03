@@ -170,8 +170,8 @@ class MaskedDataset(Dataset):
 class EmptyLiveCELLDataset(Dataset):
 
     def __init__(self, length, IMG_SIZE=512, mode=1):
-        self.img = Image.new(mode="L", size=LIVECELL_DIMS, color=LIVECELL_GREY)
-        self.mask = np.zeros(LIVECELL_DIMS)
+        self.img = transforms.ToTensor()(Image.new(mode="L", size=LIVECELL_DIMS, color=LIVECELL_GREY))
+        self.mask = torch.from_numpy(np.zeros(LIVECELL_DIMS))
         self.length = length
         self.IMG_SIZE = IMG_SIZE
         self.mode = mode
@@ -183,8 +183,6 @@ class EmptyLiveCELLDataset(Dataset):
         """
         Always returns the same image because all the images in this "dataset" are the same
         """
-        self.img = transforms.ToTensor()(self.img)
-        self.mask = torch.from_numpy(self.mask)
 
         if self.mode == 1:
             i, j, h, w = transforms.RandomCrop.get_params(
