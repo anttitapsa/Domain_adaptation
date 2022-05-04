@@ -15,7 +15,6 @@ import os
 import sys
 from tqdm import tqdm 
 from data_loader import MaskedDataset, UnMaskedDataset, EmptyLiveCELLDataset
-from logger import logger
 import checkpoint_saver
 
 chanels = 1
@@ -43,7 +42,7 @@ class ResBlock(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, features=64, blocks=1):
+    def __init__(self, features=64, blocks=3):
         super(Generator, self).__init__()
         self.conv1 = nn.Sequential( nn.ReflectionPad2d(3),
                                     nn.Conv2d(  in_channels=chanels,
@@ -260,9 +259,7 @@ def train_loop(models,
     #total = len(list(data))
 
     total = len(source_train_loader)
-    
-    log = logger("CycleGan", save_dir, ["D_A losses", "D_B losses", "G losses"])
-    log.start(epochs=epochs, batch_size=batch_size,  learning_rate=learning_rate, n_train=total, device=device) 
+     
     
     print("Starting Training Loop...")
 
@@ -378,16 +375,9 @@ def train_loop(models,
                     tb.add_scalar("Disc_loss_A", D_A_losses[-1], global_step)
                     tb.add_scalar("Disc_loss_B", D_B_losses[-1], global_step)
                     tb.add_scalar("Loss_G", G_losses[-1], global_step)
-                    log.update_loss(D_A_losses[-1],"D_A losses",global_step)
-                    log.update_loss(D_B_losses[-1],"D_B losses",global_step)
-                    log.update_loss(G_losses[-1],"G losses",global_step)
                     pbar.update(1)
                 #pbar.set_postfix_str(f'\nFDL_A2B: {Fool_disc_loss_A2B:.3f}\tFDL_B2A: {Fool_disc_loss_B2A:.3f}\tCL_A: {Cycle_loss_A:.3f}\tCL_B: {Cycle_loss_B:.3f}\tID_B2A: {Id_loss_B2A:.3f}\tID_A2B: {Id_loss_A2B:.3f}\tLoss_D_A: {Disc_loss_A.item():.3f}\tLoss_D_B: {Disc_loss_B.item():.3f}')
-            
-            losses_log = {"Disc_loss_A": D_A_losses[-1],
-                        "Disc_loss_B": D_B_losses[-1],
-                        "Loss_G": G_losses[-1]}
-            log.update(losses_log, epoch=epoch+start_epoch)
+
             saver.update(epoch=epoch +start_epoch,
                         model=(G_A2B, G_B2A, D_A, D_B),
                         optimizer= (optimizer_G_A2B, optimizer_G_B2A, optimizer_D_A, optimizer_D_B),
@@ -423,7 +413,6 @@ def train_loop(models,
             saver.save_training()
             
         tb.close()
-        log.finish()
     except KeyboardInterrupt:
         if save_checkpoint:
             print("Training interrupted")
@@ -432,7 +421,6 @@ def train_loop(models,
         else:
             print(f'Training interrupted. Checkpoint not saved.')
         tb.close()
-        log.finish()
         sys.exit()
 
 
@@ -450,7 +438,7 @@ if __name__ == '__main__':
     #Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
     #datasets = [LC_dataset, Unity_dataset]
     #dataset = torch.utils.data.ConcatDataset(datasets)
-    LC_empty_dataset = EmptyLiveCELLDataset(3 * len(LC_dataset))
+    LC_empty_dataset = EmptyLiveCELLDataset(3 * len(LC_dataset), IMG_SIZE=256)
     LC_datasets = [LC_dataset, LC_empty_dataset]  # 75% empty, 25% actual LiveCELL images
     dataset = torch.utils.data.ConcatDataset(LC_datasets)
     train_set = dataset
@@ -478,7 +466,7 @@ if __name__ == '__main__':
                                                                       generator=torch.Generator().manual_seed(seed))
 
     target_train_loader = DataLoader(target_train_set, shuffle=True, batch_size=batch_size,
-                                     pin_memory=True, drop_last=True)
+                                     pin_memory=True, drop_last=True, num_workers=4)
 
     # Create generators and discriminators
     # A = target
@@ -501,8 +489,8 @@ if __name__ == '__main__':
     train_loop(models=models,
                datasets=datasets,
                device=device,
-               model_name="epty_images",
-               epochs=10,
+               model_name="Added_empty_images_50_epochs",
+               epochs=50,
                batch_size=batch_size,
                save_checkpoint=True,
                Resume=False,

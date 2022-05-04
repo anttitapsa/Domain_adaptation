@@ -9,7 +9,7 @@ using Cycle-Consistent Adversarial Networks": https://arxiv.org/pdf/1703.10593.p
 and the model is originally implemented in https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix
 """
 class UnetGenerator(nn.Module):
-    def __init__(self, input_nc, output_nc, num_downs=3, ngf=64, norm_layer = nn.BatchNorm2d, use_dropout=False):
+    def __init__(self, input_nc, output_nc, num_downs=9, ngf=64, norm_layer = nn.BatchNorm2d, use_dropout=False):
         super(UnetGenerator, self).__init__()
         unet_block = UnetSkipConnectionBLock(outer_nc= ngf*8,
                                              inner_nc=ngf*8,
@@ -58,7 +58,7 @@ class UnetSkipConnectionBLock(nn.Module):
             input_nc=outer_nc
         downconv = nn.Conv2d(in_channels=input_nc,
                             out_channels=inner_nc,
-                            kernel_size=4,
+                            kernel_size=3,
                             stride=2,
                             padding=1,
                             bias=use_bias)
@@ -70,7 +70,7 @@ class UnetSkipConnectionBLock(nn.Module):
         if outermost:
             upconv = nn.ConvTranspose2d(in_channels=inner_nc*2,
                                         out_channels=outer_nc,
-                                        kernel_size=4,
+                                        kernel_size=3,
                                         stride=2,
                                         padding=1)
             down = [downconv]
@@ -79,7 +79,7 @@ class UnetSkipConnectionBLock(nn.Module):
         elif innermost:
             upconv = nn.ConvTranspose2d(in_channels=inner_nc,
                                         out_channels=outer_nc,
-                                        kernel_size=4,
+                                        kernel_size=3,
                                         stride=2,
                                         padding=1,
                                         bias = use_bias)
@@ -89,7 +89,7 @@ class UnetSkipConnectionBLock(nn.Module):
         else:
             upconv = nn.ConvTranspose2d(in_channels=inner_nc*2,
                                         out_channels=outer_nc,
-                                        kernel_size=4,
+                                        kernel_size=3,
                                         stride=2,
                                         padding=1,
                                         bias = use_bias)
@@ -108,6 +108,7 @@ class UnetSkipConnectionBLock(nn.Module):
         if self.outermost:
             return self.model(x)
         else:
+            print(f'model(x) shape: {torch.cat([x, self.model(x)], 1).shape}')
             return torch.cat([x, self.model(x)], 1)
 
 class NLayerDiscriminator(nn.Module):
@@ -115,7 +116,7 @@ class NLayerDiscriminator(nn.Module):
         super(NLayerDiscriminator, self).__init__()
         use_bias = norm_layer == nn.InstanceNorm2d
 
-        kw = 4
+        kw = 3
         padw = 1
         sequence = [nn.Conv2d(in_channels=input_nc,
                               out_channels= ndf,
