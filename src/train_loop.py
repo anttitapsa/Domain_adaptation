@@ -59,7 +59,7 @@ def train_loop(net,
             # Make prediction and calculate loss
             with torch.cuda.amp.autocast(enabled=amp):
                 masks_pred = net(images)        # net is the UNET model
-                loss = dice_loss(F.softmax(masks_pred, dim=1).float(),
+                loss = dice_loss(masks_pred.float(),
                                    torch.unsqueeze(masks, dim=1).float(),
                                    multiclass=False)     # Loss function is the sum of cross entropy and Dice loss
             # Add semantic_loss
@@ -102,7 +102,7 @@ if __name__ == '__main__':
     # n_classes is the number of probabilities you want to get per pixel
     
     # Hyperparameters
-    epochs = 5
+    epochs = 10
     batch_size = 6
     learning_rate=0.001
     net = Unet(numChannels=1, classes=1, dropout = 0.1)
@@ -111,7 +111,7 @@ if __name__ == '__main__':
     
     dir_checkpoint = os.path.join(os.getcwd(), "model" )
     # Create datasets
-    LC_dataset = data_loader.MaskedDataset(data_loader.LIVECELL_IMG_DIR, data_loader.LIVECELL_MASK_DIR, length=100, in_memory=False, return_domain_identifier=True, augmented=True)
+    LC_dataset = data_loader.MaskedDataset(data_loader.LIVECELL_IMG_DIR, data_loader.LIVECELL_MASK_DIR, length=None, in_memory=False, return_domain_identifier=True, augmented=True)
     test_dataset = data_loader.MaskedDataset(data_loader.TEST_IMG_DIR, data_loader.TEST_MASK_DIR, length=None, in_memory=False, return_domain_identifier=False, augmented=False)
     '''
     # Mixed data
@@ -125,7 +125,7 @@ if __name__ == '__main__':
     # Datalaoders
     train_loader = DataLoader(dataset, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True)
     # Test set loader
-    test_loader = DataLoader(test_dataset, shuffle=True, batch_size=batch_size, num_workers=4,
+    test_loader = DataLoader(test_dataset, shuffle=True, batch_size=1, num_workers=4,
                              pin_memory=True)
     datasets = (train_loader, test_loader)
     
