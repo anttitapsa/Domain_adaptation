@@ -17,7 +17,7 @@ def add_noise_to_images(image, amount = 0.05):
     '''
     return noise_image
 
-def add_fake_magnetballs(image, mask, min_amount = 30, max_amount = 70):
+def add_fake_magnetballs(image, mask, min_amount = 30, max_amount = 70, max_lightness=0.15):
     # Getting the dimensions of the image
     image_temp = torch.clone(image).numpy()
     mask_temp = torch.clone(mask).numpy()
@@ -31,7 +31,7 @@ def add_fake_magnetballs(image, mask, min_amount = 30, max_amount = 70):
         # Pick a random x coordinate
         x_coord=random.randint(r, col - 1 - r)
         # Pick color randomly, not always as black
-        black_col = np.random.uniform(0,0.2,1)[0]
+        black_col = np.random.uniform(0,max_lightness,1)[0]
         for s in range(r):
             for i in range(0,360,1):
                 x1 = s * np.cos(i)
