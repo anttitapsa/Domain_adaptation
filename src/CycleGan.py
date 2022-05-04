@@ -465,7 +465,8 @@ if __name__ == '__main__':
     batch_size = 16
 
      
-    source_train_loader = DataLoader(train_set, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True, drop_last=True) # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
+    source_train_loader = DataLoader(train_set, shuffle=True, batch_size=batch_size,
+                                     pin_memory=True, drop_last=True) # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
     # source_val_loader = DataLoader(test_set, shuffle=True, drop_last=True, **loader_args)
 
     Target_dataset = UnMaskedDataset(TARGET_DATA_DIR, mode=1, IMG_SIZE=256)
@@ -476,7 +477,7 @@ if __name__ == '__main__':
     target_train_set, target_test_set = torch.utils.data.random_split(Target_dataset, [n_train_target, n_test_target],
                                                                       generator=torch.Generator().manual_seed(seed))
 
-    target_train_loader = DataLoader(target_train_set, shuffle=True, batch_size=batch_size, num_workers=4,
+    target_train_loader = DataLoader(target_train_set, shuffle=True, batch_size=batch_size,
                                      pin_memory=True, drop_last=True)
 
     # Create generators and discriminators

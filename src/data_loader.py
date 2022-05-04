@@ -183,7 +183,7 @@ class EmptyLiveCELLDataset(Dataset):
         """
 
         if not 0 <= item < self.length:
-            raise DataLoaderException(f"Nope")
+            raise DataLoaderException(f"Index out of range")
         img = transforms.ToTensor()(Image.new(mode="L", size=LIVECELL_DIMS, color=LIVECELL_GREY))
         mask = torch.from_numpy(np.zeros(LIVECELL_DIMS))
 
