@@ -49,7 +49,7 @@ class UnMaskedDataset(Dataset):
             raise DataLoaderException(f"The first argument 'img_dir' is not a directory, it is {img_dir}")
         if type(mode) != int:
             raise DataLoaderException(f"The mode can be only int and it can be 1 or 2, it is {mode}")
-        elif mode < 1 or mode > 2:
+        elif mode < 1 or mode > 3:
             raise DataLoaderException(f"The mode can be only int and it can be 1 or 2, it is {mode}")
         self.img_dir = img_dir
         self.mode = mode
@@ -84,6 +84,16 @@ class UnMaskedDataset(Dataset):
             resize = transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=Image.NEAREST)
             if self.return_domain_identifier: return resize.forward(image), self.domain_identifier
             else: return resize.forward(image)  # No mask --> None
+        # Random crop and resize
+        elif self.mode == 3:
+            i, j, h, w = transforms.RandomCrop.get_params(
+                image,
+                output_size=(IMG_SIZE*2, IMG_SIZE*2))
+            image = transforms.functional.crop(image, i, j, h, w)
+            resize = transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=Image.NEAREST)
+            if self.return_domain_identifier:
+                return resize.forward(image), self.domain_identifier
+            else: return resize.forward(image)
     
 
     def __len__(self):
@@ -96,7 +106,7 @@ class MaskedDataset(Dataset):
     img_dir: The directory containing ONLY images used foor this data set
     mask_dir: The directory containing ONLY masks of images in the same order as the images are found in img_dir
     """
-    def __init__(self, img_dir, mask_path, length=None, in_memory=False, return_domain_identifier=False, augmented=True):
+    def __init__(self, img_dir, mask_path, length=None, in_memory=False, return_domain_identifier=False, augmented=False, mode=1):
         if not os.path.isdir(img_dir):
             raise DataLoaderException(f"The first argument 'img_dir' is not a directory, it is {img_dir}")
         if not os.path.isdir(mask_path):
@@ -109,6 +119,7 @@ class MaskedDataset(Dataset):
         self.length = length
         self.in_memory = in_memory  # If true, read whole dataset into memory on initialization.
         self.augmented = augmented
+        self.mode = mode
         iter_count = length if length else len(os.listdir(img_dir))
         self.return_domain_identifier = return_domain_identifier
         if return_domain_identifier:
@@ -170,14 +181,25 @@ class MaskedDataset(Dataset):
                     f"Couldn't read mask {mask_path}. Make sure your masks are located in {self.mask_path}!")
         
         image = transforms.ToTensor()(image)
-
-        i, j, h, w = transforms.RandomCrop.get_params(
-            image,
-            output_size=(IMG_SIZE, IMG_SIZE))
-        image = transforms.functional.crop(image, i, j, h, w)
-        mask = transforms.functional.crop(mask, i, j, h, w)
+        if self.mode == 1:
+            i, j, h, w = transforms.RandomCrop.get_params(
+                image,
+                output_size=(IMG_SIZE, IMG_SIZE))
+            image = transforms.functional.crop(image, i, j, h, w)
+            mask = transforms.functional.crop(mask, i, j, h, w)
+        # For target test dataset
+        elif self.mode == 2:
+            i, j, h, w = transforms.RandomCrop.get_params(
+                image,
+                output_size=(IMG_SIZE*2, IMG_SIZE*2))
+            image = transforms.functional.crop(image, i, j, h, w)
+            mask = transforms.functional.crop(mask, i, j, h, w)
+            resize = transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=Image.NEAREST)
+            image = resize.forward(image)
+            mask = torch.squeeze(resize.forward(torch.unsqueeze(mask, dim=0)),dim=0)
+        
         # adds magneballs to livecell
-        if self.augmented: image, mask = transformer.add_fake_magnetballs(image, mask)
+        if self.augmented: image, mask = transformer.add_fake_magnetballs(image, mask, min_amount = 10, max_amount = 30, max_lightness=0.15)
         if self.return_domain_identifier: return image, mask, self.domain_identifier
         return image, mask
         
