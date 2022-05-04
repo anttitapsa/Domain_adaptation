@@ -83,22 +83,21 @@ def train_loop(net,
             grad_scaler.update()
             
             # Calculate BCE loss
+            optim_target.zero_grad()
             masks_pred, domain_label = net(mix_data, lambd)
             disc_loss = criterion(domain_label.flatten(), true_domain_labels)
             loss_training_di.append(disc_loss.item())
             
             # Optimisation step
-            optim_target.zero_grad()
             disc_loss.backward()
             optim_target.step()    
         
-        '''
+        
         # Calculate eval losses
-        loss_eval_se, loss_eval_di = evaluate_model(model=net, dataloader=test_loader, device=device)
+        loss_eval_se, loss_eval_di = evaluate_model(model=net, dataloader=test_loader, device=device, model_type="UNET_domainclassifier")
         
         # Add epoc losses to array
         loss_array[:, epoch] = (np.mean(loss_training_se), np.mean(loss_training_di), loss_eval_se, loss_eval_di)
-        '''
         
     # Save model
     torch.save(net.state_dict(), str(os.path.join(save_dir, model_name +".pth")))
@@ -118,7 +117,7 @@ def train_loop(net,
 if __name__ == '__main__':
     # Hyperparameters
     epochs = 10
-    batch_size = 8
+    batch_size = 6
     learning_rate=0.001
     
     dir_checkpoint = os.path.join(os.getcwd(), "model" )
@@ -156,7 +155,7 @@ if __name__ == '__main__':
                                      pin_memory=True)
 
     # Test set loader
-    test_loader = DataLoader(test_dataset, shuffle=True, batch_size=batch_size, num_workers=4,
+    test_loader = DataLoader(test_dataset, shuffle=True, batch_size=1, num_workers=4,
                              pin_memory=True)
 
 

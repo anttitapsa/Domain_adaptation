@@ -122,7 +122,7 @@ class UNET_domainclassifier(Module):
     # dropout: During training, randomly zeroes some of the elements of the input tensor with probability 
     # dropout to prevent overtraining
     def __init__(self, numChannels = 1, classes = 2, dropout = 0.1, image_res=512, domain_classifier_level=0):
-        super(Unet, self).__init__()
+        super(UNET_domainclassifier, self).__init__()
         
         # Domain Classifier
         assert domain_classifier_level >= 0 and domain_classifier_level <= 4, "Domain classifier has five levels and takes values 0 - 4."

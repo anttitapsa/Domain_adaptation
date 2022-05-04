@@ -73,7 +73,7 @@ def train_loop(net,
 
         
         # Calculate eval losses
-        loss_eval_se = evaluate_basic_UNet(model=net, dataloader=test_loader, device=device)
+        loss_eval_se = evaluate_model(model=net, dataloader=test_loader, device=device, model_type = "UNET")
         
         # Add epoc losses to array
         loss_array[:, epoch] = (np.mean(loss_training_se), loss_eval_se)

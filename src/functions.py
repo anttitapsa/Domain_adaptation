@@ -69,7 +69,7 @@ def dice_loss(input: Tensor, target: Tensor, multiclass: bool = False):
     fn = multiclass_dice_coeff if multiclass else dice_coeff
     return 1 - fn(input, target, reduce_batch_first=True)
 
-def plot_training_loss(losses, labels, folder, show_image = False, save_image = True, name=None):
+def plot_training_loss(losses, labels, folder, show_image = False, save_image = True, name=None, y_lims=(0,2)):
     ''' Function that plots training loss and saves the image by default
     losses : numpy.array (n_losses, n_epochs)
         Array of epoch losses. Contains four different
@@ -85,6 +85,8 @@ def plot_training_loss(losses, labels, folder, show_image = False, save_image = 
         Boolean value for image saving
     name : str
         Name for the plot
+    y_lims : tuple
+        Limit y-axis if given
     '''
     epochs = list(range(losses.shape[1]))
     for n_loss in range(losses.shape[0]):
@@ -96,6 +98,9 @@ def plot_training_loss(losses, labels, folder, show_image = False, save_image = 
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()
+    
+    # Limit y-axis
+    plt.ylim(y_lims)
     
     if show_image:
         plt.show()
@@ -125,7 +130,7 @@ def save_losses(losses, labels, folder, name='losses.txt'):
                     f.write(", ")
             f.write('\n')
         
-def evaluate_model(model, dataloader, device):
+def evaluate_model(model, dataloader, device, model_type):
     '''Function that is used to test given model
     model : class Unet
         Trained network model
@@ -134,45 +139,54 @@ def evaluate_model(model, dataloader, device):
     device : str
         Determines where calculatios are made: CPU or Cuda.
     '''
-    model.eval() # Set model to evaluation mode
-    num_val_batches = len(dataloader) # Number of batches in dataloader
-    
-    # Set up binary cross entropy loss
-    BCE_loss = nn.BCELoss()
-    fn_sigmoid = nn.Sigmoid()
-    
-    n = 0
-    disc_losses = []; dice_losses = []
-    for batch in tqdm(dataloader, total=num_val_batches, desc='Validation round', unit='batch', leave=False):
-        image, mask_true = batch[0], batch[1]
-        
-        # move images and labels to correct device and type
-        image = image.to(device)
-        mask_true = mask_true.to(device=device, dtype=torch.long)
-        
-        mask_true = F.one_hot(mask_true, 2).permute(0, 3, 1, 2).float() # Is model.n_classes number of predicted classes? Yes changed to 2
-
-        p = float(n + 1 * len(dataloader)) / 1 / len(dataloader)
-        lambd = 2. / (1. + np.exp(-10 * p)) - 1
-        n += 1 # Is it correct?
+    model.eval()
+    BCE_loss = nn.BCELoss() # Set up binary cross entropy loss
+    semantic_losses = []; discriminator_losses = []
+    n = 0 # Used to calculate lambda
+    for images, masks in tqdm(dataloader, total=len(dataloader), desc='Validation round', unit='batch', leave=False):
+        images = images.to(device)
+        masks = masks.to(device)
         
         with torch.no_grad():
-            mask_pred, domain_label = model(image, lambd)
+            if model_type == "UNET":
+                mask_pred = model(images)
+                
+                # Calculate dice loss
+                semantic_loss = dice_loss(F.softmax(mask_pred, dim=1).float(),
+                                          torch.unsqueeze(masks, dim=1).float())
+                semantic_losses.append(semantic_loss.item())
+                
+            elif model_type == "UNET_domainclassifier":
+                # Determine lambda that is used for lambda decay
+                p = float(n + 1 * len(dataloader)) / 1 / len(dataloader)
+                lambd = 2. / (1. + np.exp(-10 * p)) - 1
+                n += 1 # Is it correct?
+                
+                mask_pred, domain_label = model(images, lambd)
+                
+                # Compute BCE loss
+                label_true = torch.ones(domain_label.size()).to(device).flatten()
+                discriminator_loss = BCE_loss(domain_label.flatten(), label_true)
+                discriminator_losses.append(discriminator_loss.item())
+                
+                # Calculate dice loss
+                semantic_loss = dice_loss(F.softmax(mask_pred, dim=1).float(),
+                                          torch.unsqueeze(masks, dim=1).float())
+                semantic_losses.append(semantic_loss.item()) 
             
-            # Compute the Dice score
-            mask_pred = (fn_sigmoid(mask_pred) > 0.5).float()
-            dice_losses.append(dice_coeff(mask_pred, mask_true, reduce_batch_first=False).item())
-            
-            # Compute BCE loss
-            domain_label = domain_label.flatten()
-            label_true = torch.ones(domain_label.size()).to(device)
-            disc_losses.append(BCE_loss(domain_label, label_true).item())
-            
+            else:
+                raise Exception("Unkown model type!")
+                 
     model.train()
     
-    return np.mean(dice_losses), np.mean(disc_losses)
+    # Return values are based on the model type
+    if model_type == "UNET":
+        return np.mean(semantic_losses)
+    elif model_type == "UNET_domainclassifier":
+        return np.mean(semantic_losses), np.mean(discriminator_losses)
+ 
 
-def evaluate_basic_UNet(model, dataloader, device):
+#def evaluate_basic_UNet(model, dataloader, device):
     '''Function that is used to evaluate vanilla UNet
     model : class Unet
         Trained network model
@@ -180,6 +194,7 @@ def evaluate_basic_UNet(model, dataloader, device):
         Contains data used for evaluating the model
     device : str
         Determines where calculatios are made: CPU or Cuda.
+    '''
     '''
     model.eval()
     semantic_losses = []
@@ -195,5 +210,4 @@ def evaluate_basic_UNet(model, dataloader, device):
     model.train()
     
     return np.mean(semantic_losses)
-
-    
+    '''
