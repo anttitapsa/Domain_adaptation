@@ -220,7 +220,7 @@ def train_loop(models,
         G_A2B, G_B2A, D_A, D_B = models
         optimizer_G_A2B, optimizer_G_B2A, optimizer_D_A, optimizer_D_B = optimizers
         G_losses, D_A_losses, D_B_losses = losses
-
+        print(f'Training starts from epoch {start_epoch +1}.')
         global_step = global_step
         # Logger and tensorboard
         tb = SummaryWriter(log_dir=tb_dir)
@@ -432,6 +432,10 @@ if __name__ == '__main__':
     TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
     LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
     LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
+    LIVECELL_IMG_MB_DIR = os.path.join(DATA_DIR, "livecell_magnet_balls", "images")
+    LIVECELL_MASK_MB_DIR = os.path.join(DATA_DIR, "livecell_magnet_balls", "masks")
+    LIVECELL_E_IMG_MB_DIR = os.path.join(DATA_DIR, "empty_lc_magnet_balls", "images")
+    LIVECELL_E_MASK_MB_DIR = os.path.join(DATA_DIR, "empty_lc_magnet_balls", "masks")
     UNITY_IMG_DIR = os.path.join(DATA_DIR, "unity_data", "images")
     UNITY_MASK_DIR = os.path.join(DATA_DIR, "unity_data", "masks")
     dir_checkpoint = os.path.join(os.getcwd(), "model" )
@@ -458,13 +462,22 @@ if __name__ == '__main__':
         datasets = [LC_dataset, Unity_dataset]
         train_set = torch.utils.data.ConcatDataset(datasets)
     elif args.data == "lc_mb":
-        ###
-        pass
+        train_set = MaskedDataset(LIVECELL_IMG_MB_DIR, LIVECELL_MASK_MB_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)
     elif args.data == "lc_e":
         LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)
         LC_empty_dataset = EmptyLiveCELLDataset(len(LC_dataset), IMG_SIZE=256)
         LC_datasets = [LC_dataset, LC_empty_dataset]  # 50% empty, 50% actual LiveCELL images
         train_set = torch.utils.data.ConcatDataset(LC_datasets)
+    elif args.data == "lc_mb_e":
+        LC_dataset = MaskedDataset(LIVECELL_IMG_MB_DIR, LIVECELL_MASK_MB_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)
+        LC_empty_dataset = MaskedDataset(LIVECELL_E_IMG_MB_DIR, LIVECELL_E_MASK_MB_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)
+        LC_datasets = [LC_dataset, LC_empty_dataset]  # 50% empty, 50% actual LiveCELL images
+        train_set = torch.utils.data.ConcatDataset(LC_datasets)
+    elif args.data == "lc_mb_mix":
+        LC_dataset = MaskedDataset(LIVECELL_IMG_MB_DIR, LIVECELL_MASK_MB_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)
+        Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)
+        datasets = [LC_dataset, Unity_dataset]
+        train_set = torch.utils.data.ConcatDataset(datasets)
     else:
         print(f'{args.data} is not valid option for dataset. The training continues with default dataset; LiveCell.')
         train_set = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)
