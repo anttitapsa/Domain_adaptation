@@ -130,7 +130,7 @@ def save_losses(losses, labels, folder, name='losses.txt'):
                     f.write(", ")
             f.write('\n')
         
-def evaluate_model(model, dataloader, device, model_type):
+def evaluate_model(model, dataloader, device, model_type, n_epoch = 3):
     '''Function that is used to test given model
     model : class Unet
         Trained network model
@@ -143,39 +143,41 @@ def evaluate_model(model, dataloader, device, model_type):
     BCE_loss = nn.BCELoss() # Set up binary cross entropy loss
     semantic_losses = []; discriminator_losses = []
     n = 0 # Used to calculate lambda
-    for images, masks in tqdm(dataloader, total=len(dataloader), desc='Validation round', unit='batch', leave=False):
-        images = images.to(device)
-        masks = masks.to(device)
-        
-        with torch.no_grad():
-            if model_type == "UNET":
-                mask_pred = model(images)
-                
-                # Calculate dice loss
-                semantic_loss = dice_loss(F.softmax(mask_pred, dim=1).float(),
-                                          torch.unsqueeze(masks, dim=1).float())
-                semantic_losses.append(semantic_loss.item())
-                
-            elif model_type == "UNET_domainclassifier":
-                # Determine lambda that is used for lambda decay
-                p = float(n + 1 * len(dataloader)) / 1 / len(dataloader)
-                lambd = 2. / (1. + np.exp(-10 * p)) - 1
-                n += 1 # Is it correct?
-                
-                mask_pred, domain_label = model(images, lambd)
-                
-                # Compute BCE loss
-                label_true = torch.ones(domain_label.size()).to(device).flatten()
-                discriminator_loss = BCE_loss(domain_label.flatten(), label_true)
-                discriminator_losses.append(discriminator_loss.item())
-                
-                # Calculate dice loss
-                semantic_loss = dice_loss(F.softmax(mask_pred, dim=1).float(),
-                                          torch.unsqueeze(masks, dim=1).float())
-                semantic_losses.append(semantic_loss.item()) 
+    
+    for epoch in range(n_epoch):
+        for images, masks in tqdm(dataloader, total=len(dataloader), desc='Validation round', unit='batch', leave=False):
+            images = images.to(device)
+            masks = masks.to(device)
             
-            else:
-                raise Exception("Unkown model type!")
+            with torch.no_grad():
+                if model_type == "UNET":
+                    mask_pred = model(images)
+                    
+                    # Calculate dice loss
+                    semantic_loss = dice_loss(mask_pred.float(),
+                                              torch.unsqueeze(masks, dim=1).float())
+                    semantic_losses.append(semantic_loss.item())
+                    
+                elif model_type == "UNET_domainclassifier":
+                    # Determine lambda that is used for lambda decay
+                    p = float(n + 1 * len(dataloader)) / 1 / len(dataloader)
+                    lambd = 2. / (1. + np.exp(-10 * p)) - 1
+                    n += 1 # Is it correct?
+                    
+                    mask_pred, domain_label = model(images, lambd)
+                    
+                    # Compute BCE loss
+                    label_true = torch.ones(domain_label.size()).to(device).flatten()
+                    discriminator_loss = BCE_loss(domain_label.flatten(), label_true)
+                    discriminator_losses.append(discriminator_loss.item())
+                    
+                    # Calculate dice loss
+                    semantic_loss = dice_loss(mask_pred.float(),
+                                              torch.unsqueeze(masks, dim=1).float())
+                    semantic_losses.append(semantic_loss.item()) 
+                
+                else:
+                    raise Exception("Unkown model type!")
                  
     model.train()
     
