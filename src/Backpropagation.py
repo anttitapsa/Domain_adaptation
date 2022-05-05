@@ -69,7 +69,7 @@ def train_loop(net,
             with torch.cuda.amp.autocast(enabled=amp):
                 masks_pred, domain_label = net(source_im, lambd)
                 semantic_loss = dice_loss(
-                    F.softmax(masks_pred, dim=1).float(),
+                    masks_pred.float(),
                     torch.unsqueeze(source_mask, dim=1).float(),
                     multiclass=False)     # Loss function Dice loss
             
@@ -115,57 +115,114 @@ def train_loop(net,
                 name='losses.txt')
 
 if __name__ == '__main__':
+    
     # Hyperparameters
     epochs = 10
-    batch_size = 6
-    learning_rate=0.001
-    
-    dir_checkpoint = os.path.join(os.getcwd(), "model" )
-    # Create data loaders
-    LC_dataset = data_loader.MaskedDataset(data_loader.LIVECELL_IMG_DIR, data_loader.LIVECELL_MASK_DIR, length=None, in_memory=False, return_domain_identifier=True, augmented=True)
-    test_dataset = data_loader.MaskedDataset(data_loader.TEST_IMG_DIR, data_loader.TEST_MASK_DIR, length=None, in_memory=False, return_domain_identifier=False, mode=2)
-    '''
-    # Mixed data
-    Unity_dataset = data_loader.MaskedDataset(data_loader.UNITY_IMG_DIR, data_loader.UNITY_MASK_DIR, length=None, in_memory=False, return_domain_identifier=True, augmented=False)
-    datasets = [LC_dataset, Unity_dataset]
-    dataset = torch.utils.data.ConcatDataset(datasets)
-    '''
-    # Only Livecell
-    dataset = LC_dataset
-   
-    train_set = dataset
-    seed = 123
-    test_percent = 0.001
-    n_test = int(len(dataset) * test_percent)
-    n_train = len(dataset) - n_test
-
-    # train_set, test_set = torch.utils.data.random_split(dataset, [n_train, n_test], generator=torch.Generator().manual_seed(seed))
-     
-    source_train_loader = DataLoader(train_set, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True) # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
-    # source_val_loader = DataLoader(test_set, shuffle=True, drop_last=True, **loader_args)
-    target_dataset = data_loader.UnMaskedDataset(data_loader.TARGET_DATA_DIR, mode=1, return_domain_identifier=True)
-
-    target_test_percent = 0 #0.01
-    n_test_target = int(len(target_dataset) * target_test_percent)
-    n_train_target = len(target_dataset) - n_test_target
-    target_train_set, target_test_set = torch.utils.data.random_split(target_dataset, [n_train_target, n_test_target],
-                                                                      generator=torch.Generator().manual_seed(seed))
-
-    target_train_loader = DataLoader(target_train_set, shuffle=True, batch_size=batch_size, num_workers=4,
-                                     pin_memory=True)
-
-    # Test set loader
-    test_loader = DataLoader(test_dataset, shuffle=True, batch_size=1, num_workers=4,
-                             pin_memory=True)
-
-
+    batch_size = 5
+    learning_rate = 0.001
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    datasets = (source_train_loader, target_train_loader, test_loader)
     
-    train_loop(net=UNET_domainclassifier(numChannels=1, classes=1, dropout = 0.1, image_res=data_loader.IMG_SIZE, domain_classifier_level=0),
-               datasets=datasets,
-               device=device,
-               epochs=epochs,
-               learning_rate=learning_rate,
-               model_name = "Backprop_10epochs")
+    # Set model path
+    dir_checkpoint = os.path.join(os.getcwd(), "model" )
+    
+    # Orginal livecell data
+    LC_dataset = data_loader.MaskedDataset(
+        data_loader.LIVECELL_IMG_DIR, 
+        data_loader.LIVECELL_MASK_DIR, 
+        length=None, 
+        in_memory=False, 
+        return_domain_identifier=True, 
+        augmented=False)
+    
+    # Augmented livecell data
+    LC_dataset_augmented = data_loader.MaskedDataset(
+        data_loader.LIVECELL_IMG_DIR, 
+        data_loader.LIVECELL_MASK_DIR, 
+        length=None, 
+        in_memory=False, 
+        return_domain_identifier=True, 
+        augmented=True)
+    
+    # Synthetic dataset
+    Unity_dataset = data_loader.MaskedDataset(
+        data_loader.UNITY_IMG_DIR, 
+        data_loader.UNITY_MASK_DIR, 
+        length=None, 
+        in_memory=False, 
+        return_domain_identifier=True, 
+        augmented=False)
+    
+    # Target dataset
+    target_dataset = data_loader.UnMaskedDataset(
+        data_loader.TARGET_DATA_DIR, 
+        mode=3, 
+        return_domain_identifier=True)
+    
+    # Evaluation dataset
+    evaluation_dataset = data_loader.MaskedDataset(
+        data_loader.TEST_IMG_DIR,
+        data_loader.TEST_MASK_DIR, 
+        length=None, 
+        in_memory=False, 
+        return_domain_identifier=False, 
+        mode=2)
+    
+    # Augmented livecell + synthetic dataset
+    combined_dataset = torch.utils.data.ConcatDataset([LC_dataset_augmented, Unity_dataset])
+    
+    # Create dataloaders
+    LC_loader           = DataLoader(LC_dataset, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True)
+    LC_augmented_loader = DataLoader(LC_dataset_augmented, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True)
+    unity_loader        = DataLoader(Unity_dataset, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True)
+    target_loader       = DataLoader(target_dataset, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True)
+    evaluation_loader   = DataLoader(evaluation_dataset, shuffle=True, batch_size=1, num_workers=4, pin_memory=True)
+    combined_loader     = DataLoader(combined_dataset, shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True)
+    
+    # Model training : combined data
+    for layer in range(1):
+        network_model = UNET_domainclassifier(
+            numChannels = 1, 
+            classes = 1, 
+            dropout = 0.1, 
+            image_res = data_loader.IMG_SIZE, 
+            domain_classifier_level = layer)
+        
+        train_loop(net=network_model,
+                   datasets=(combined_loader, target_loader, evaluation_loader),
+                   device=device,
+                   epochs=epochs,
+                   learning_rate=learning_rate,
+                   model_name = f"BP_{layer}layer_Combined_{epochs}epochs_{batch_size}batch")
+    
+    # Model training : orginal livecell data
+    for layer in range(1):
+        network_model = UNET_domainclassifier(
+            numChannels = 1, 
+            classes = 1, 
+            dropout = 0.1, 
+            image_res = data_loader.IMG_SIZE, 
+            domain_classifier_level = layer)
+        
+        train_loop(net=network_model,
+                   datasets=(LC_loader, target_loader, evaluation_loader),
+                   device=device,
+                   epochs=epochs,
+                   learning_rate=learning_rate,
+                   model_name = f"BP_{layer}layer_LiveCell_{epochs}epochs_{batch_size}batch")
+    
+    # Model training : augmented livecell data
+    for layer in range(1,5):
+        network_model = UNET_domainclassifier(
+            numChannels = 1, 
+            classes = 1, 
+            dropout = 0.1, 
+            image_res = data_loader.IMG_SIZE, 
+            domain_classifier_level = layer)
+        
+        train_loop(net=network_model,
+                   datasets=(LC_augmented_loader, target_loader, evaluation_loader),
+                   device=device,
+                   epochs=epochs,
+                   learning_rate=learning_rate,
+                   model_name = f"BP_{layer}layer_AugmentedLiveCell_{epochs}epochs_{batch_size}batch")
+
