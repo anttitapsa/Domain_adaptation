@@ -13,7 +13,7 @@ import os
 from tqdm import tqdm 
 import data_loader
 from model import Unet, UNET_domainclassifier
-from functions import dice_loss, plot_training_loss, evaluate_model, save_losses, evaluate_basic_UNet
+from functions import dice_loss, plot_training_loss, evaluate_model, save_losses
 import numpy as np
 
 
