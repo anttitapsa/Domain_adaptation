@@ -8,7 +8,7 @@ from torchvision import transforms
 import os
 import numpy as np
 from tqdm import tqdm
-#from transformer import add_fake_magnetballs
+from transformer import add_fake_magnetballs
 if os.path.basename(os.getcwd()) != "lst-project":
     raise Exception(f"You are in {os.getcwd()}, please move into root directory lst-project.")
 
@@ -158,7 +158,7 @@ class MaskedDataset(Dataset):
             image = resize.forward(image)
             mask = resize.forward(mask.unsqueeze(dim=0))
         # adds magneballs to livecell
-        # image, mask = add_fake_magnetballs(image, mask)
+        image, mask = add_fake_magnetballs(image, mask)
         return image, mask
         
     def __len__(self):
@@ -198,6 +198,6 @@ class EmptyLiveCELLDataset(Dataset):
             img = resize.forward(img)
             mask = resize.forward(mask.unsqueeze(dim=0))
         # adds magnet balls to livecell
-        # self.img, self.mask = add_fake_magnetballs(self.img, self.mask)
+        img, mask = add_fake_magnetballs(img, mask)
 
         return img, mask
