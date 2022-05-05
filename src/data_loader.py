@@ -81,7 +81,7 @@ class UnMaskedDataset(Dataset):
                 return image, self.domain_identifier
             else: return image  # No mask --> None
         elif self.mode == 2:
-            resize = transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=Image.NEAREST)
+            resize = transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=transforms.InterpolationMode.NEAREST)
             if self.return_domain_identifier: return resize.forward(image), self.domain_identifier
             else: return resize.forward(image)  # No mask --> None
         # Random crop and resize
@@ -90,7 +90,7 @@ class UnMaskedDataset(Dataset):
                 image,
                 output_size=(IMG_SIZE*2, IMG_SIZE*2))
             image = transforms.functional.crop(image, i, j, h, w)
-            resize = transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=Image.NEAREST)
+            resize = transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=transforms.InterpolationMode.NEAREST)
             if self.return_domain_identifier:
                 return resize.forward(image), self.domain_identifier
             else: return resize.forward(image)
@@ -194,7 +194,7 @@ class MaskedDataset(Dataset):
                 output_size=(IMG_SIZE*2, IMG_SIZE*2))
             image = transforms.functional.crop(image, i, j, h, w)
             mask = transforms.functional.crop(mask, i, j, h, w)
-            resize = transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=Image.NEAREST)
+            resize = transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=transforms.InterpolationMode.NEAREST)
             image = resize.forward(image)
             mask = torch.squeeze(resize.forward(torch.unsqueeze(mask, dim=0)),dim=0)
         
