@@ -13,7 +13,10 @@ from pathlib import Path
 import random
 import os
 import sys
+import argparse
 from tqdm import tqdm 
+
+
 from data_loader import MaskedDataset, UnMaskedDataset, EmptyLiveCELLDataset
 import checkpoint_saver
 
@@ -157,13 +160,13 @@ def train_loop(models,
                datasets,
                device,
                model_name,
-               epochs=5,
-               batch_size=2,
-               learning_rate=0.0002,
-               betas=(0.5, 0.999),
-               save_checkpoint=True,
-               Resume=False,
-               Pause_path= ""):
+               epochs,
+               batch_size,
+               learning_rate,
+               betas,
+               save_checkpoint,
+               Resume,
+               Pause_path):
 
     # Lists to save the losses
     '''
@@ -270,8 +273,8 @@ def train_loop(models,
             iters = 0
             target_iter = iter(target_train_loader)
 
-            with tqdm(total=total, desc=f'Epoch {epoch + 1 + start_epoch}/{epochs}', unit='img') as pbar:
-                for data_source in source_train_loader:
+            with tqdm(source_train_loader, desc=f'Epoch {epoch + 1 + start_epoch}/{epochs}', unit='img') as pbar:
+                for data_source in pbar:
                     try:
                         data_target = next(target_iter)
                     except StopIteration:
@@ -375,7 +378,7 @@ def train_loop(models,
                     tb.add_scalar("Disc_loss_A", D_A_losses[-1], global_step)
                     tb.add_scalar("Disc_loss_B", D_B_losses[-1], global_step)
                     tb.add_scalar("Loss_G", G_losses[-1], global_step)
-                    pbar.update(1)
+                    #pbar.update(1)
                 #pbar.set_postfix_str(f'\nFDL_A2B: {Fool_disc_loss_A2B:.3f}\tFDL_B2A: {Fool_disc_loss_B2A:.3f}\tCL_A: {Cycle_loss_A:.3f}\tCL_B: {Cycle_loss_B:.3f}\tID_B2A: {Id_loss_B2A:.3f}\tID_A2B: {Id_loss_A2B:.3f}\tLoss_D_A: {Disc_loss_A.item():.3f}\tLoss_D_B: {Disc_loss_B.item():.3f}')
 
             saver.update(epoch=epoch +start_epoch,
@@ -433,41 +436,45 @@ if __name__ == '__main__':
     UNITY_MASK_DIR = os.path.join(DATA_DIR, "unity_data", "masks")
     dir_checkpoint = os.path.join(os.getcwd(), "model" )
 
+    # parser for commandline arguments and fdifferent options
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--epochs', nargs='?', const=1, type=int, default=10, help='The number of epochs run in training. Default 10 epochs.')
+    parser.add_argument('--lr', nargs='?', const=1, type=float, default=0.0002,  help='The learning rate utilised in training. If not defined learning rate is set to 0.0002')
+    parser.add_argument('--batch', nargs='?', const=1, type=int, default= 16, help="The batch size utilised in training. If not defined, batch size is set to 16")
+    parser.add_argument('--data', nargs='?', const=1, type=str, default= "lc", help="The dataset utilised in the training. Options are 'lc' (LiveCell dataset), 'unity' (Synthetic dataset), 'mix'(mixture of LiveCell and synthetic datasets), 'lc_mb' (LiveCell with fake magnetballs). Default dataset: LiveCell.")
+    parser.add_argument('--name', nargs='?', const=1, type=str, default="cyclegan", help="The name of the model. If not defined, name is 'cyclegan'.")
+    parser.add_argument('--resume', nargs='?', const=1, type=str, default="", help="Resume the training of last model. Give the name of the folder, where the model is strored. For example 'CycleGan_2022-05-05'. !OTHER GIVEN PARAMETERS ARE IGNORED IF THIS FLAG IS UTILISED!")
+    args = parser.parse_args()
+
     # Create data loaders
-    LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)
-    #Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False)
-    #datasets = [LC_dataset, Unity_dataset]
-    #combined_dataset = torch.utils.data.ConcatDataset(datasets)
-    LC_empty_dataset = EmptyLiveCELLDataset(len(LC_dataset), IMG_SIZE=256)
-    LC_datasets = [LC_dataset, LC_empty_dataset]  # 50% empty, 50% actual LiveCELL images
-    dataset = torch.utils.data.ConcatDataset(LC_datasets)
-    train_set = dataset #change this if you want also to use empty boxes 
-    
-    '''
-    seed = 123
-    test_percent = 0.001
-    n_test = int(len(dataset) * test_percent)
-    n_train = len(dataset) - n_test
-
-    train_set, test_set = torch.utils.data.random_split(dataset, [n_train, n_test], generator=torch.Generator().manual_seed(seed))
-    '''
-    batch_size = 16
-    
+    if args.data == "lc":
+        train_set = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)
+    elif args.data == 'unity':
+        train_set = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)
+    elif args.data == "mix":
+        LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)
+        Unity_dataset = MaskedDataset(UNITY_IMG_DIR, UNITY_MASK_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)
+        datasets = [LC_dataset, Unity_dataset]
+        train_set = torch.utils.data.ConcatDataset(datasets)
+    elif args.data == "lc_mb":
+        ###
+        pass
+    elif args.data == "lc_e":
+        LC_dataset = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)
+        LC_empty_dataset = EmptyLiveCELLDataset(len(LC_dataset), IMG_SIZE=256)
+        LC_datasets = [LC_dataset, LC_empty_dataset]  # 50% empty, 50% actual LiveCELL images
+        train_set = torch.utils.data.ConcatDataset(LC_datasets)
+    else:
+        print(f'{args.data} is not valid option for dataset. The training continues with default dataset; LiveCell.')
+        train_set = MaskedDataset(LIVECELL_IMG_DIR, LIVECELL_MASK_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)
      
-    source_train_loader = DataLoader(train_set, shuffle=True, batch_size=batch_size,
+    source_train_loader = DataLoader(train_set, shuffle=True, batch_size=args.batch,
                                      pin_memory=True, drop_last=True) # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
-    # source_val_loader = DataLoader(test_set, shuffle=True, drop_last=True, **loader_args)
-
-    Target_dataset = UnMaskedDataset(TARGET_DATA_DIR, mode=1, IMG_SIZE=256)
+    
+    Target_dataset = UnMaskedDataset(TARGET_DATA_DIR, mode=4, IMG_SIZE=256)
     target_train_set = Target_dataset
-    '''
-    target_test_percent = 0.01
-    n_test_target = int(len(Target_dataset) * target_test_percent)
-    n_train_target = len(Target_dataset) - n_test_target
-    target_train_set, target_test_set = torch.utils.data.random_split(Target_dataset, [n_train_target, n_test_target],
-                                                                      generator=torch.Generator().manual_seed(seed))
-    '''
-    target_train_loader = DataLoader(target_train_set, shuffle=True, batch_size=batch_size,
+    target_train_loader = DataLoader(target_train_set, shuffle=True, batch_size=args.batch,
                                      pin_memory=True, drop_last=True, num_workers=4)
 
     # Create generators and discriminators
@@ -488,12 +495,19 @@ if __name__ == '__main__':
     models = (G_A2B, G_B2A, D_A, D_B)
     datasets = (source_train_loader, target_train_loader)
 
+    if not args.resume:
+        resume = False
+    else:
+        resume = True
+
     train_loop(models=models,
                datasets=datasets,
                device=device,
-               model_name="",
-               epochs=50,
-               batch_size=batch_size,
+               model_name=args.name,
+               epochs=args.epochs,
+               batch_size=args.batch,
                save_checkpoint=True,
-               Resume=False,
-               Pause_path ="")
+               Resume=resume,
+               Pause_path =args.resume,
+               learning_rate=args.lr,
+               betas= (0.5, 0.999))

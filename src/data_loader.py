@@ -35,12 +35,13 @@ class UnMaskedDataset(Dataset):
         # mode: 1 --> RandomCrop when using __getitem__
         #       2 --> Resized using IMAGE_SIZE when using __getitem__
         #       3 --> returns original image
+        #       4 --> crops randomly 512 x512 and resize it IMG_SIZE x IMG_SIZE
         if not os.path.isdir(img_dir):
             raise DataLoaderException(f"The first argument 'img_dir' is not a directory, it is {img_dir}")
         if type(mode) != int:
-            raise DataLoaderException(f"The mode can be only int and it can be 1 or 2, it is {mode}")
-        elif mode < 1 or mode > 3:
-            raise DataLoaderException(f"The mode can be only int and it can be 1 or 2, it is {mode}")
+            raise DataLoaderException(f"The mode can be only int and it can be 1, 2, 3, or 4 it is {mode}")
+        elif mode < 1 or mode > 4:
+            raise DataLoaderException(f"The mode can be only int and it can be 1, 2, 3, or 4 it is {mode}")
         self.img_dir = img_dir
         self.mode = mode
         self.IMG_SIZE= IMG_SIZE
@@ -68,6 +69,13 @@ class UnMaskedDataset(Dataset):
             return resize.forward(image)
         elif self.mode == 3:
             return image
+        elif self.mode == 4:
+            i, j, h, w = transforms.RandomCrop.get_params(
+                image,
+                output_size=(512, 512))
+            image = transforms.functional.crop(image, i, j, h, w)
+            resize = transforms.Resize((self.IMG_SIZE, self.IMG_SIZE))
+            return resize.forward(image)
     
 
     def __len__(self):
@@ -157,8 +165,10 @@ class MaskedDataset(Dataset):
             resize = transforms.Resize((self.IMG_SIZE, self.IMG_SIZE))
             image = resize.forward(image)
             mask = resize.forward(mask.unsqueeze(dim=0))
+        if self.mode == 3:
+            return image, mask
         # adds magneballs to livecell
-        image, mask = add_fake_magnetballs(image, mask)
+        #image, mask = add_fake_magnetballs(image, mask)
         return image, mask
         
     def __len__(self):
@@ -197,7 +207,9 @@ class EmptyLiveCELLDataset(Dataset):
             resize = transforms.Resize((self.IMG_SIZE, self.IMG_SIZE))
             img = resize.forward(img)
             mask = resize.forward(mask.unsqueeze(dim=0))
+        if self.mode == 3:
+            return img, mask.squeeze(0)
         # adds magnet balls to livecell
-        img, mask = add_fake_magnetballs(img, mask)
+        #img, mask = add_fake_magnetballs(img, mask)
 
         return img, mask
