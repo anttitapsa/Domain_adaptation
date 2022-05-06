@@ -3,7 +3,7 @@ from PIL import Image
 import torch
 from torchvision import transforms
 # python -m pip install -U scikit-image
-from skimage.util import random_noise
+#from skimage.util import random_noise
 import random
 from tqdm import tqdm
 
