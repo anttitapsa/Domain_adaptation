@@ -101,7 +101,9 @@ class Unet(Module):
         x = self.conv9(x)
         
         x = self.outc(x)
-        return torch.sigmoid(x)
+        #x = torch.sigmoid(x)
+        
+        return x
 
     @staticmethod
     def _conv2d_block(in_channel, out_channel):
@@ -223,8 +225,8 @@ class UNET_domainclassifier(Module):
         x_shape = x_dom_list[self.domain_classifier_level].shape
         x_dom = torch.flatten(x_dom_list[self.domain_classifier_level], start_dim=1) 
         y = self.domain_classifier(x_dom, lamd, x_shape)
-        
-        return (torch.sigmoid(x), y)
+        #x = torch.sigmoid(x)
+        return (x, y)
 
     @staticmethod
     def _conv2d_block(in_channel, out_channel):
