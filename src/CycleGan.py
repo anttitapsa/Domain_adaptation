@@ -19,6 +19,7 @@ from tqdm import tqdm
 
 from data_loader import MaskedDataset, UnMaskedDataset, EmptyLiveCELLDataset
 import checkpoint_saver
+import transformer
 
 chanels = 1
 class ResBlock(nn.Module):
@@ -166,7 +167,8 @@ def train_loop(models,
                betas,
                save_checkpoint,
                Resume,
-               Pause_path):
+               Pause_path,
+               noise):
 
     # Lists to save the losses
     '''
@@ -247,6 +249,8 @@ def train_loop(models,
         tb = SummaryWriter(log_dir=log_dir)
         sources, s_labels = next(iter(datasets[0]))
         targets = next(iter(datasets[1]))
+        if noise:
+            sources = transformer.add_noise_to_images(sources)
         sources = sources.to(device)
         targets = targets.to(device)
         source_grid = torchvision.utils.make_grid(sources)
@@ -281,7 +285,10 @@ def train_loop(models,
                         target_iter = iter(target_train_loader)
                         data_target = next(target_iter)
 
-                        
+                    
+                    if noise:
+                        data_source[0] = transformer.add_noise_to_images(data_source[0])
+                    
                     # Set model input
                     a_real = resize.forward(data_source[0]).to(device)
                     b_real = resize.forward(data_target).to(device)
@@ -449,6 +456,7 @@ if __name__ == '__main__':
     parser.add_argument('--data', nargs='?', const=1, type=str, default= "lc", help="The dataset utilised in the training. Options are 'lc' (LiveCell dataset), 'unity' (Synthetic dataset), 'mix'(mixture of LiveCell and synthetic datasets), 'lc_mb' (LiveCell with fake magnetballs). Default dataset: LiveCell.")
     parser.add_argument('--name', nargs='?', const=1, type=str, default="cyclegan", help="The name of the model. If not defined, name is 'cyclegan'.")
     parser.add_argument('--resume', nargs='?', const=1, type=str, default="", help="Resume the training of last model. Give the name of the folder, where the model is strored. For example 'CycleGan_2022-05-05'. !OTHER GIVEN PARAMETERS ARE IGNORED IF THIS FLAG IS UTILISED!")
+    parser.add_argument('--noise', nargs='?', const=1, type=bool, default=False, help="Adds noise to images. Default False")
     args = parser.parse_args()
 
     # Create data loaders
@@ -485,7 +493,7 @@ if __name__ == '__main__':
     source_train_loader = DataLoader(train_set, shuffle=True, batch_size=args.batch,
                                      pin_memory=True, drop_last=True) # num_workers is number of cores used, pin_memory enables fast data transfer to CUDA-enabled GPUs
     
-    Target_dataset = UnMaskedDataset(TARGET_DATA_DIR, mode=4, IMG_SIZE=256)
+    Target_dataset = UnMaskedDataset(TARGET_DATA_DIR, mode=1, IMG_SIZE=256)
     target_train_set = Target_dataset
     target_train_loader = DataLoader(target_train_set, shuffle=True, batch_size=args.batch,
                                      pin_memory=True, drop_last=True, num_workers=4)
@@ -523,4 +531,5 @@ if __name__ == '__main__':
                Resume=resume,
                Pause_path =args.resume,
                learning_rate=args.lr,
-               betas= (0.5, 0.999))
+               betas= (0.5, 0.999),
+               noise = args.noise)
