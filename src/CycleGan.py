@@ -250,7 +250,7 @@ def train_loop(models,
         sources, s_labels = next(iter(datasets[0]))
         targets = next(iter(datasets[1]))
         if noise:
-            sources = transformer.add_noise_to_images(sources)
+            sources = transformer.add_background_noise(sources)
         sources = sources.to(device)
         targets = targets.to(device)
         source_grid = torchvision.utils.make_grid(sources)
@@ -287,10 +287,12 @@ def train_loop(models,
 
                     
                     if noise:
-                        data_source[0] = transformer.add_noise_to_images(data_source[0])
+                        data_source[0] = transformer.add_background_noise(data_source[0].to(device))
                     
                     # Set model input
-                    a_real = resize.forward(data_source[0]).to(device)
+                        a_real = resize.forward(data_source[0])
+                    else:
+                        a_real = resize.forward(data_source[0]).to(device)
                     b_real = resize.forward(data_target).to(device)
 
                     # Generate images

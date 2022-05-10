@@ -9,8 +9,8 @@ import os
 import numpy as np
 from tqdm import tqdm
 from transformer import add_fake_magnetballs
-if os.path.basename(os.getcwd()) != "lst-project":
-    raise Exception(f"You are in {os.getcwd()}, please move into root directory lst-project.")
+#if os.path.basename(os.getcwd()) != "lst-project":
+#    raise Exception(f"You are in {os.getcwd()}, please move into root directory lst-project.")
 
 
 DATA_DIR = os.path.join(os.getcwd(), "data")
