@@ -8,7 +8,9 @@ from torchvision import transforms
 import os
 import numpy as np
 from tqdm import tqdm
+from zmq import device
 from transformer import add_fake_magnetballs
+import transformer
 #if os.path.basename(os.getcwd()) != "lst-project":
 #    raise Exception(f"You are in {os.getcwd()}, please move into root directory lst-project.")
 
@@ -88,12 +90,14 @@ class MaskedDataset(Dataset):
     img_dir: The directory containing ONLY images used foor this data set
     mask_dir: The directory containing ONLY masks of images in the same order as the images are found in img_dir
     """
-    def __init__(self, img_dir, mask_path, length=None, in_memory=False, IMG_SIZE=512, mode=1):
+    def __init__(self, img_dir, mask_path, length=None, in_memory=False, IMG_SIZE=512, mode=1, noise=False, device="cpu"):
         if not os.path.isdir(img_dir):
             raise DataLoaderException(f"The first argument 'img_dir' is not a directory, it is {img_dir}")
         if not os.path.isdir(mask_path):
             raise DataLoaderException(f"The second argument 'mask_path' is not a directory, it is {mask_path}")
         
+        self.device = device
+        self.noise =noise
         self.mode = mode
         self.IMG_SIZE = IMG_SIZE
         self.im_suffix = "." + os.listdir(img_dir)[0].split(".")[-1]
@@ -164,12 +168,19 @@ class MaskedDataset(Dataset):
         if self.mode == 2:
             resize = transforms.Resize((self.IMG_SIZE, self.IMG_SIZE))
             image = resize.forward(image)
-            mask = resize.forward(mask.unsqueeze(dim=0))
+            mask = torch.squeeze(resize.forward(torch.unsqueeze(mask, dim=0)),dim=0)
+
         if self.mode == 3:
-            return image, mask
+            if self.noise:
+                return transformer.add_background_noise(image, self.device), mask
+            else:
+                return image, mask
         # adds magneballs to livecell
         #image, mask = add_fake_magnetballs(image, mask)
-        return image, mask
+        if self.noise:
+            return transformer.add_background_noise(image, self.device), mask
+        else:
+            return image, mask
         
     def __len__(self):
         if self.length:

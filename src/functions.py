@@ -143,7 +143,20 @@ def evaluate_model(model, dataloader, device, model_type, n_epoch = 3):
     BCE_loss = nn.BCELoss() # Set up binary cross entropy loss
     semantic_losses = []; discriminator_losses = []
     n = 0 # Used to calculate lambda
-    
+    for images, masks in tqdm(dataloader, total=len(dataloader), desc='Validation round', unit='batch', leave=False):
+            images = images.to(device)
+            masks = masks.to(device)
+            
+            with torch.no_grad():
+                
+                mask_pred = model(images)
+                 # Calculate dice loss
+                semantic_loss = dice_loss(F.softmax(mask_pred, dim=1).float(),
+                                        F.one_hot(masks.to(torch.int64), 2).permute(0, 3, 1, 2).float(),
+                                        multiclass=True)
+                semantic_losses.append(semantic_loss.item())
+
+    '''
     for epoch in range(n_epoch):
         for images, masks in tqdm(dataloader, total=len(dataloader), desc='Validation round', unit='batch', leave=False):
             images = images.to(device)
@@ -178,7 +191,7 @@ def evaluate_model(model, dataloader, device, model_type, n_epoch = 3):
                 
                 else:
                     raise Exception("Unkown model type!")
-                 
+    '''        
     model.train()
     
     # Return values are based on the model type

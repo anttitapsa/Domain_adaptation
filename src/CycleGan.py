@@ -249,8 +249,10 @@ def train_loop(models,
         tb = SummaryWriter(log_dir=log_dir)
         sources, s_labels = next(iter(datasets[0]))
         targets = next(iter(datasets[1]))
+        '''
         if noise:
             sources = transformer.add_background_noise(sources)
+        '''
         sources = sources.to(device)
         targets = targets.to(device)
         source_grid = torchvision.utils.make_grid(sources)
@@ -285,7 +287,7 @@ def train_loop(models,
                         target_iter = iter(target_train_loader)
                         data_target = next(target_iter)
 
-                    
+                    '''
                     if noise:
                         data_source[0] = transformer.add_background_noise(data_source[0].to(device))
                     
@@ -293,7 +295,9 @@ def train_loop(models,
                         a_real = resize.forward(data_source[0])
                     else:
                         a_real = resize.forward(data_source[0]).to(device)
-                    b_real = resize.forward(data_target).to(device)
+                    '''
+                    a_real = resize.forward(data_source[0].to(device))
+                    b_real = resize.forward(data_target.to(device))
 
                     # Generate images
                     b_fake = G_A2B(a_real)
@@ -449,6 +453,7 @@ if __name__ == '__main__':
     UNITY_MASK_DIR = os.path.join(DATA_DIR, "unity_data", "masks")
     dir_checkpoint = os.path.join(os.getcwd(), "model" )
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # parser for commandline arguments and fdifferent options
     parser = argparse.ArgumentParser()
 
@@ -479,8 +484,8 @@ if __name__ == '__main__':
         LC_datasets = [LC_dataset, LC_empty_dataset]  # 50% empty, 50% actual LiveCELL images
         train_set = torch.utils.data.ConcatDataset(LC_datasets)
     elif args.data == "lc_mb_e":
-        LC_dataset = MaskedDataset(LIVECELL_IMG_MB_DIR, LIVECELL_MASK_MB_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)
-        LC_empty_dataset = MaskedDataset(LIVECELL_E_IMG_MB_DIR, LIVECELL_E_MASK_MB_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)
+        LC_dataset = MaskedDataset(LIVECELL_IMG_MB_DIR, LIVECELL_MASK_MB_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1, noise=args.noise, device=device)
+        LC_empty_dataset = MaskedDataset(LIVECELL_E_IMG_MB_DIR, LIVECELL_E_MASK_MB_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1, noise=args.noise, device=device)
         LC_datasets = [LC_dataset, LC_empty_dataset]  # 50% empty, 50% actual LiveCELL images
         train_set = torch.utils.data.ConcatDataset(LC_datasets)
     elif args.data == "lc_mb_mix":

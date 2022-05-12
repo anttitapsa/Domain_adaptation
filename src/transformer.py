@@ -16,14 +16,15 @@ def add_noise_to_images(image, amount = 0.05):
     noise_image = torch.tensor(random_noise(noise_image, mode = 's&p', salt_vs_pepper = 0.0, amount=amount))
     return noise_image
 
-def add_background_noise(image):
+def add_background_noise(image, device="cpu"):
     '''
     function changes the hue, brightness, contrast and saturation of the image, and it adds also random blur to images
     '''
     transforms = nn.Sequential(
         T.ColorJitter(brightness=[0,2], hue=[-0.5,0.5], contrast=[0,3], saturation=[0,3]),
         T.GaussianBlur(kernel_size=(51, 91), sigma=(0.1,6)))
-    return transforms(image)
+    aug_img = transforms(image.to(device))
+    return aug_img.to("cpu")
 
 def add_fake_magnetballs(image, mask, min_amount = 30, max_amount = 70, max_lightness=0.15):
     # Getting the dimensions of the image
@@ -50,6 +51,37 @@ def add_fake_magnetballs(image, mask, min_amount = 30, max_amount = 70, max_ligh
 
     return transforms.ToTensor()(image_temp).permute(1,2,0), transforms.ToTensor()(mask_temp).squeeze(0).permute(1,2,0)
 
+def rebuild(crop_list, original_size):
+    rows = []
+    for row in crop_list:
+        new_row = torch.cat(row, -1)
+        rows.append(new_row)
+    return T.functional.crop(torch.cat(rows, 2), top=0, left=0, height=original_size[0], width=original_size[1])
+
+
+def slice_image(image, crop_size):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    image.to(device)
+
+    top = 0 
+    left = 0
+
+    image_crops = []
+    row = []
+
+    while 1:
+        crop = T.functional.crop(img=image, top=top, left=left, height=crop_size, width=crop_size)
+        row.append(crop)
+        if left + crop_size  > image.shape[3]:
+            image_crops.append(row)
+            top += crop_size
+            left = 0
+            row = []
+        else:
+            left+=crop_size
+        if (top  > image.shape[2]) and (left +crop_size  > image.shape[3]):
+            break
+    return image_crops
 
 '''
 
