@@ -486,7 +486,7 @@ if __name__ == '__main__':
     elif args.data == "lc_mb_e":
         LC_dataset = MaskedDataset(LIVECELL_IMG_MB_DIR, LIVECELL_MASK_MB_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1, noise=args.noise, device=device)
         LC_empty_dataset = MaskedDataset(LIVECELL_E_IMG_MB_DIR, LIVECELL_E_MASK_MB_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1, noise=args.noise, device=device)
-        LC_datasets = [LC_dataset, LC_empty_dataset]  # 50% empty, 50% actual LiveCELL images
+        LC_datasets = [LC_dataset, LC_empty_dataset, LC_empty_dataset, LC_empty_dataset ]  # 80% empty, 20% actual LiveCELL images
         train_set = torch.utils.data.ConcatDataset(LC_datasets)
     elif args.data == "lc_mb_mix":
         LC_dataset = MaskedDataset(LIVECELL_IMG_MB_DIR, LIVECELL_MASK_MB_DIR, length=None, in_memory=False, IMG_SIZE=256, mode=1)

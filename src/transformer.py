@@ -52,6 +52,12 @@ def add_fake_magnetballs(image, mask, min_amount = 30, max_amount = 70, max_ligh
     return transforms.ToTensor()(image_temp).permute(1,2,0), transforms.ToTensor()(mask_temp).squeeze(0).permute(1,2,0)
 
 def rebuild(crop_list, original_size):
+    '''
+    Rebuilds image from 2D list containing crops of tensor. Each element of list should contain row crops from original image increasing order.
+    Structure of list should be same as slice_image function returns.
+    crop_list --> 2D list of crops
+    original_size--> (tuple) contains size of original image. In target data, it's (1544,2064)
+    '''
     rows = []
     for row in crop_list:
         new_row = torch.cat(row, -1)
@@ -60,6 +66,13 @@ def rebuild(crop_list, original_size):
 
 
 def slice_image(image, crop_size):
+    '''
+    Creates 2D list containing crops of tensor. List inside list is containig one row of crops from original image.
+    Image --> tensor containing information of image
+    crop_size --> size of crop box
+
+    function may add padding if the crop goes over image. That padding is removed in rebuild function.
+    '''
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     image.to(device)
 
