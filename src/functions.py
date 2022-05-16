@@ -3,6 +3,7 @@ import torch
 from torch import Tensor
 import torch.nn.functional as F
 import torch.nn as nn
+from torchvision import transforms
 
 import matplotlib.pyplot as plt 
 from datetime import datetime
@@ -154,8 +155,17 @@ def evaluate_model(model, dataloader, device, model_type, n_epoch = 3):
                     mask_pred = model(images)
                     
                     # Calculate dice loss
-                    semantic_loss = dice_loss(mask_pred.float(),
-                                              torch.unsqueeze(masks, dim=1).float())
+                    #semantic_loss = dice_loss(mask_pred.float(),
+                    #                          torch.unsqueeze(masks, dim=1).float())
+                    
+                    # Two class version
+                    semantic_loss = dice_loss(
+                        F.softmax(mask_pred, dim=1).float(),
+                        F.one_hot(masks.to(torch.int64), 2).permute(0, 3, 1, 2).float(),
+                        multiclass=True
+                        )
+                    
+                    
                     semantic_losses.append(semantic_loss.item())
                     
                 elif model_type == "UNET_domainclassifier":
@@ -172,8 +182,16 @@ def evaluate_model(model, dataloader, device, model_type, n_epoch = 3):
                     discriminator_losses.append(discriminator_loss.item())
                     
                     # Calculate dice loss
-                    semantic_loss = dice_loss(mask_pred.float(),
-                                              torch.unsqueeze(masks, dim=1).float())
+                    #semantic_loss = dice_loss(mask_pred.float(),
+                    #                          torch.unsqueeze(masks, dim=1).float())
+                    
+                    # Two class version
+                    semantic_loss = dice_loss(
+                        F.softmax(mask_pred, dim=1).float(),
+                        F.one_hot(masks.to(torch.int64), 2).permute(0, 3, 1, 2).float(),
+                        multiclass=True
+                        )
+                    
                     semantic_losses.append(semantic_loss.item()) 
                 
                 else:
@@ -186,7 +204,87 @@ def evaluate_model(model, dataloader, device, model_type, n_epoch = 3):
         return np.mean(semantic_losses)
     elif model_type == "UNET_domainclassifier":
         return np.mean(semantic_losses), np.mean(discriminator_losses)
- 
+
+def evaluate_final(model, dataloader, device, model_type):
+    '''Function that is used to test given model
+    model : class Unet
+        Trained network model
+    dataloader : class DataLoader
+        Contains data used for evaluating the model
+    device : str
+        Determines where calculatios are made: CPU or Cuda.
+    '''
+    model.eval()
+    BCE_loss = nn.BCELoss() # Set up binary cross entropy loss
+    semantic_losses = []; discriminator_losses = []
+    img_size = 512
+    imgwidth = 2064
+    imgheight = 1544
+    
+    for images, masks in tqdm(dataloader, total=len(dataloader), desc='Validation round', unit='batch', leave=False):
+        images = images.to(device)
+        masks = masks.to(device)
+        
+        with torch.no_grad():
+            if model_type == "UNET":
+
+                for i in range(4,imgheight-img_size,img_size):
+                    for j in range(8,imgwidth-img_size,img_size):
+                        box = (j, i, img_size, img_size)
+                        crop_image = transforms.functional.crop(images, *box)
+                        crop_mask = transforms.functional.crop(masks, *box)
+                        #print('crop_image', crop_image.shape)
+                        
+                        resize = transforms.Resize((256, 256), interpolation=transforms.InterpolationMode.NEAREST)
+                        crop_image = resize.forward(crop_image)
+                        crop_mask = torch.squeeze(resize.forward(torch.unsqueeze(crop_mask, dim=0)),dim=0)
+                        
+                        mask_pred = model(crop_image)
+                        # Two class version
+                        semantic_loss = dice_loss(
+                            F.softmax(mask_pred, dim=1).float(),
+                            F.one_hot(crop_mask.to(torch.int64), 2).permute(0, 3, 1, 2).float(),
+                            multiclass=True
+                            )
+                        semantic_losses.append(semantic_loss.item())
+                
+            elif model_type == "UNET_domainclassifier":
+                lambd = 1
+                
+                for i in range(4,imgheight-img_size,img_size):
+                    for j in range(8,imgwidth-img_size,img_size):
+                        box = (j, i, img_size, img_size)
+                        crop_image = transforms.functional.crop(images, *box)
+                        crop_mask = transforms.functional.crop(masks, *box)
+                        
+                        resize = transforms.Resize((256, 256), interpolation=transforms.InterpolationMode.NEAREST)
+                        crop_image = resize.forward(crop_image)
+                        crop_mask = torch.squeeze(resize.forward(torch.unsqueeze(crop_mask, dim=0)),dim=0)
+                        
+                        mask_pred, domain_label = model(crop_image, lambd)
+                        
+                        # Compute BCE loss
+                        label_true = torch.ones(domain_label.size()).to(device).flatten()
+                        discriminator_loss = BCE_loss(domain_label.flatten(), label_true)
+                        discriminator_losses.append(discriminator_loss.item())
+                        # Two class version
+                        semantic_loss = dice_loss(
+                            F.softmax(mask_pred, dim=1).float(),
+                            F.one_hot(crop_mask.to(torch.int64), 2).permute(0, 3, 1, 2).float(),
+                            multiclass=True
+                            )
+                        
+                        semantic_losses.append(semantic_loss.item()) 
+            
+            else:
+                raise Exception("Unkown model type!")
+    
+    # Return values are based on the model type
+    if model_type == "UNET":
+        return np.mean(semantic_losses)
+    elif model_type == "UNET_domainclassifier":
+        return np.mean(semantic_losses), np.mean(discriminator_losses)
+
 
 #def evaluate_basic_UNet(model, dataloader, device):
     '''Function that is used to evaluate vanilla UNet
