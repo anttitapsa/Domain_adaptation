@@ -101,7 +101,7 @@ class Unet(Module):
         x = self.conv9(x)
         
         x = self.outc(x)
-        return torch.sigmoid(x)
+        return x
 
     @staticmethod
     def _conv2d_block(in_channel, out_channel):
