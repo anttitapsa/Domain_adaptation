@@ -5,27 +5,26 @@ from torchvision import transforms
 # python -m pip install -U scikit-image
 from skimage.util import random_noise
 import random
-import torchvision.transforms as T
+from tqdm import tqdm
 import torch.nn as nn
+import torchvision.transforms as T
 
-def add_background_noise(image):
-
-    transforms = nn.Sequential(
-        T.ColorJitter(brightness=[0,2], hue=[-0.5,0.5], contrast=[0,3], saturation=[0,3]),
-        T.GaussianBlur(kernel_size=(51, 91), sigma=(0.1,6)))
-    return transforms(image)
 
 # function adds noise to tensors (and flips them)
 def add_noise_to_images(image, amount = 0.05):
     noise_image = image + torch.randn(image.size()) * 0.07 + 0.1 
     noise_image = torch.tensor(random_noise(noise_image, mode = 's&p', salt_vs_pepper = 0.0, amount=amount))
-    '''
-    vflipper = transforms.RandomVerticalFlip(p=0.5)
-    transformed_image = [vflipper(noise_image) for _ in range(4)]
-    hflipper = transforms.RandomHorizontalFlip(p=0.5)
-    transformed_image = [hflipper(transformed_image[0]) for _ in range(4)][0]
-    '''
     return noise_image
+
+def add_background_noise(image, device="cpu"):
+    '''
+    function changes the hue, brightness, contrast and saturation of the image, and it adds also random blur to images
+    '''
+    transforms = nn.Sequential(
+        T.ColorJitter(brightness=[0,2], hue=[-0.5,0.5], contrast=[0,3], saturation=[0,3]),
+        T.GaussianBlur(kernel_size=(51, 91), sigma=(0.1,6)))
+    aug_img = transforms(image.to(device))
+    return aug_img.to("cpu")
 
 def add_fake_magnetballs(image, mask, min_amount = 30, max_amount = 70, max_lightness=0.15):
     # Getting the dimensions of the image
@@ -48,6 +47,51 @@ def add_fake_magnetballs(image, mask, min_amount = 30, max_amount = 70, max_ligh
         image_temp[0, mask] = black_col
         mask_temp[mask] = black_col
     return transforms.ToTensor()(image_temp).permute(1,2,0), transforms.ToTensor()(mask_temp).squeeze(0)
+
+def rebuild(crop_list, original_size):
+    '''
+    Rebuilds image from 2D list containing crops of tensor. Each element of list should contain row crops from original image increasing order.
+    Structure of list should be same as slice_image function returns.
+    crop_list --> 2D list of crops
+    original_size--> (tuple) contains size of original image. In target data, it's (1544,2064)
+    '''
+    rows = []
+    for row in crop_list:
+        new_row = torch.cat(row, -1)
+        rows.append(new_row)
+    return T.functional.crop(torch.cat(rows, 2), top=0, left=0, height=original_size[0], width=original_size[1])
+
+
+def slice_image(image, crop_size):
+    '''
+    Creates 2D list containing crops of tensor. List inside list is containig one row of crops from original image.
+    Image --> tensor containing information of image
+    crop_size --> size of crop box
+
+    function may add padding if the crop goes over image. That padding is removed in rebuild function.
+    '''
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    image.to(device)
+
+    top = 0 
+    left = 0
+
+    image_crops = []
+    row = []
+
+    while 1:
+        crop = T.functional.crop(img=image, top=top, left=left, height=crop_size, width=crop_size)
+        row.append(crop)
+        if left + crop_size  > image.shape[3]:
+            image_crops.append(row)
+            top += crop_size
+            left = 0
+            row = []
+        else:
+            left+=crop_size
+        if (top  > image.shape[2]) and (left +crop_size  > image.shape[3]):
+            break
+    return image_crops
 
 def resize_image_(image, size):
     resize = transforms.Resize(size)
