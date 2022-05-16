@@ -10,7 +10,7 @@ from datetime import datetime
 import os 
 from tqdm import tqdm 
 import numpy as np
-
+from torchvision import transforms
 # Training example layout -- Code from Pytorch tutorial
 '''
 def train(dataloader, model, loss_fn, optimizer):
