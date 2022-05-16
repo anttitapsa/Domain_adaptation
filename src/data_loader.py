@@ -18,6 +18,8 @@ DATA_DIR = os.path.join(os.getcwd(), "data")
 TARGET_DATA_DIR = os.path.join(DATA_DIR, "target")
 LIVECELL_IMG_DIR = os.path.join(DATA_DIR, "livecell", "images")
 LIVECELL_MASK_DIR = os.path.join(DATA_DIR, "livecell", "masks")
+LIVECELL_TEST_IMG_DIR = os.path.join(DATA_DIR, "livecell_test", "images")
+LIVECELL_TEST_MASK_DIR = os.path.join(DATA_DIR, "livecell_test", "masks")
 UNITY_IMG_DIR = os.path.join(DATA_DIR, "unity_data", "images")
 UNITY_MASK_DIR = os.path.join(DATA_DIR, "unity_data", "masks")
 TEST_IMG_DIR = os.path.join(DATA_DIR, "test_target_data", "images")
@@ -28,7 +30,8 @@ DOMAIN_MAP = {
     "livecell": 0,
     "target": 1,
     "unity_data": 0,
-    "test_target_data": 1
+    "test_target_data": 1,
+    "livecell_test": 0
 }
 
 
