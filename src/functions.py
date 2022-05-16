@@ -9,7 +9,7 @@ from datetime import datetime
 import os 
 from tqdm import tqdm 
 import numpy as np
-
+from torchvision import transforms
 # Training example layout -- Code from Pytorch tutorial
 '''
 def train(dataloader, model, loss_fn, optimizer):
@@ -154,8 +154,17 @@ def evaluate_model(model, dataloader, device, model_type, n_epoch = 3):
                     mask_pred = model(images)
                     
                     # Calculate dice loss
-                    semantic_loss = dice_loss(mask_pred.float(),
-                                              torch.unsqueeze(masks, dim=1).float())
+                    #semantic_loss = dice_loss(mask_pred.float(),
+                    #                          torch.unsqueeze(masks, dim=1).float())
+                    
+                    # Two class version
+                    semantic_loss = dice_loss(
+                        F.softmax(mask_pred, dim=1).float(),
+                        F.one_hot(masks.to(torch.int64), 2).permute(0, 3, 1, 2).float(),
+                        multiclass=True
+                        )
+                    
+                    
                     semantic_losses.append(semantic_loss.item())
                     
                 elif model_type == "UNET_domainclassifier":
@@ -172,8 +181,16 @@ def evaluate_model(model, dataloader, device, model_type, n_epoch = 3):
                     discriminator_losses.append(discriminator_loss.item())
                     
                     # Calculate dice loss
-                    semantic_loss = dice_loss(mask_pred.float(),
-                                              torch.unsqueeze(masks, dim=1).float())
+                    #semantic_loss = dice_loss(mask_pred.float(),
+                    #                          torch.unsqueeze(masks, dim=1).float())
+                    
+                    # Two class version
+                    semantic_loss = dice_loss(
+                        F.softmax(mask_pred, dim=1).float(),
+                        F.one_hot(masks.to(torch.int64), 2).permute(0, 3, 1, 2).float(),
+                        multiclass=True
+                        )
+                    
                     semantic_losses.append(semantic_loss.item()) 
                 
                 else:
