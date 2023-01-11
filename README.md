@@ -2,6 +2,8 @@
 
 LST project - Domain adaptation of microscopic cell images
 
+Contributors: Anni Niskanen, Juhani Kolehmainen, Lauri Pohjola, Antti Huttunen, and Tuomas Poutanen
+
 Check project report from ```src/report/```
 
 ## Dataset
