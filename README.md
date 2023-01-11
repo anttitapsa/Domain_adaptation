@@ -2,6 +2,8 @@
 
 LST project - Domain adaptation of microscopic cell images
 
+Check project report from ```src/report/```
+
 ## Dataset
 
 The Dataset called LIVECell is utilised for training the model. LIVECell is high-quality, manually annotated and expert-validated dataset. It contains over 1.6 million cells from different cell morphologies. Additional information about LIVECell can be found [here](https://sartorius-research.github.io/LIVECell/).
