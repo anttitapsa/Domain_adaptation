@@ -1,10 +1,10 @@
-# LST-project
+# Life Science Technologies (LST)-project
 
 LST project - Domain adaptation of microscopic cell images
 
 Contributors: Anni Niskanen, Juhani Kolehmainen, Lauri Pohjola, Antti Huttunen, and Tuomas Poutanen
 
-Check project report from ```src/report/```
+Check the project report from ```src/report/```
 
 ## Dataset
 
